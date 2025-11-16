@@ -11,9 +11,9 @@
   <style>
     .card { @apply bg-white rounded-2xl shadow-sm border border-slate-200; }
     .card-body { @apply p-4 md:p-6; }
-    .btn { @apply inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-medium border border-slate-200 bg-slate-50 hover:bg-slate-100; }
-    .btn-primary { @apply border-transparent bg-slate-900 text-white hover:bg-black; }
-    .btn-danger { @apply border-transparent bg-rose-600 text-white hover:bg-rose-700; }
+    .btn { @apply inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-medium border border-slate-200 bg-slate-50 hover:bg-slate-100 transition shadow-sm; }
+    .btn-primary { @apply border-transparent bg-sky-600 text-white hover:bg-sky-700 shadow; }
+    .btn-danger { @apply border-transparent bg-rose-600 text-white hover:bg-rose-700 shadow; }
     .btn-ghost { @apply border-transparent bg-transparent hover:bg-slate-100; }
     .input { @apply w-full rounded-xl border border-slate-300 px-3 py-2 text-sm; }
     .switch { width: 36px; height: 22px; position: relative; display: inline-block; }
@@ -22,8 +22,8 @@
     .slider:before { content:""; position:absolute; height:18px; width:18px; left:2px; top:2px; background:white; transition:.2s; border-radius:999px; }
     input:checked + .slider { background:#0ea5e9; }
     input:checked + .slider:before { transform:translateX(14px); }
-    .tab-btn { @apply px-3 py-2 rounded-xl text-sm border border-slate-200; }
-    .tab-btn.active { @apply bg-slate-900 text-white border-slate-900; }
+    .tab-btn { @apply px-3 py-2 rounded-xl text-sm font-medium border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100; }
+    .tab-btn.active { @apply bg-slate-900 text-white border-slate-900 shadow; }
     .grid-header { @apply grid grid-cols-12 items-center gap-2 text-xs font-medium text-slate-500 px-1 mb-1; }
     .group-title { @apply text-xl font-bold tracking-tight; }
     .group-sub { @apply text-xs text-slate-500; }
@@ -121,7 +121,7 @@
         <div class="grid md:grid-cols-4 gap-3" id="splitGrid"></div>
         <div class="text-xs text-slate-500">Total activ: <span id="splitTotal">0</span>%</div>
         <div class="flex gap-2">
-          <button id="btnApplySplit" class="btn">Aplică împărțirea pe grupe</button>
+          <button id="btnApplySplit" class="btn-primary">Aplică împărțirea pe grupe</button>
         </div>
       </div>
     </section>
@@ -140,7 +140,8 @@
         <div class="card"><div class="card-body">
           <p class="text-sm text-slate-600">Rezumat detaliat al tuturor grupelor. Poți edita direct sumele și vezi instant procentul fiecărei linii din venitul lunar. Pentru adăugare/ștergere de linii folosește tab-urile fiecărei grupe.</p>
         </div></div>
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4" id="groupsContainerPlan"></div>
+        <!-- Plan general: 2x2 carduri pentru grupuri -->
+        <div class="grid md:grid-cols-2 lg:grid-cols-2 gap-4" id="groupsContainerPlan"></div>
       </section>
 
       <section id="tab-cheltuieli_baza" class="hidden"></section>
@@ -163,7 +164,7 @@
   }
 
   // ======================= STATE & HELPERS =======================
-  const STORAGE_KEY = 'budget_ro_html_pwa_v3';
+  const STORAGE_KEY = 'budget_ro_html_pwa_v4';
   const RON = 'RON';
   const GroupKey = {
     BAZA: 'cheltuieli_baza',
@@ -376,7 +377,7 @@
 
     if (!opts.planMode) {
       const right = document.createElement('div'); right.className='flex items-center gap-2';
-      const btnAdd = document.createElement('button'); btnAdd.className='btn'; btnAdd.textContent='Adaugă linie';
+      const btnAdd = document.createElement('button'); btnAdd.className='btn-primary'; btnAdd.textContent='Adaugă linie';
       btnAdd.addEventListener('click', ()=>{
         const name = prompt('Numele liniei (ex. Cadouri, Fitness etc.)');
         if (!name) return;
@@ -391,7 +392,9 @@
     body.appendChild(head);
 
     const header = document.createElement('div'); header.className='grid-header';
-    header.innerHTML = '<div class="col-span-5">Categorie</div><div class="col-span-3 text-right">Sumă lunar</div><div class="col-span-3 text-right">% din venit</div><div class="col-span-1 text-center" title="Fix = nu se ajustează automat">Fix</div>';
+    header.innerHTML = opts.planMode
+      ? '<div class="col-span-5">Categorie</div><div class="col-span-2 text-right">Sumă lunar</div><div class="col-span-2 text-right">% din venit</div><div class="col-span-1 text-center">Fix</div><div class="col-span-2"></div>'
+      : '<div class="col-span-4">Categorie</div><div class="col-span-2 text-right">Sumă lunar</div><div class="col-span-2 text-right">% din venit</div><div class="col-span-1 text-center">Fix</div><div class="col-span-3 text-right">Acțiune</div>';
 
     const list = document.createElement('div'); list.className='space-y-2';
     const lines = state.lines.filter(l=>l.group===groupKey);
@@ -399,13 +402,15 @@
     lines.forEach(line => {
       const row = document.createElement('div'); row.className='grid grid-cols-12 gap-2 items-center';
 
-      const cName = document.createElement('input'); cName.className='input col-span-5'; cName.value=line.name; cName.placeholder='Nume categorie';
+      const cName = document.createElement('input');
+      cName.className = opts.planMode ? 'input col-span-5' : 'input col-span-4';
+      cName.value=line.name; cName.placeholder='Nume categorie';
       cName.addEventListener('input', ()=>{ line.name = cName.value; save(); });
 
-      const cAmt = document.createElement('input'); cAmt.className='input col-span-3 text-right'; cAmt.inputMode='decimal'; cAmt.placeholder='0.00'; cAmt.value=String(line.amount);
+      const cAmt = document.createElement('input'); cAmt.className='input col-span-2 text-right'; cAmt.inputMode='decimal'; cAmt.placeholder='0.00'; cAmt.value=String(line.amount);
       cAmt.addEventListener('focus', ()=>{ cAmt.select(); });
 
-      const pctDiv = document.createElement('div'); pctDiv.className='col-span-3 text-right text-xs md:text-sm text-slate-600';
+      const pctDiv = document.createElement('div'); pctDiv.className='col-span-2 text-right text-xs md:text-sm text-slate-600';
       function updatePct() {
         if (state.income > 0) {
           const p = (Number(line.amount) || 0) / state.income * 100;
@@ -432,15 +437,17 @@
       row.append(cName, cAmt, pctDiv, cFixedWrap);
 
       if (!opts.planMode) {
-        const delRow = document.createElement('div'); delRow.className='col-span-12 flex justify-end -mt-1';
-        const btnDel = document.createElement('button'); btnDel.className='btn-ghost btn text-slate-500'; btnDel.textContent='Șterge';
+        const delWrap = document.createElement('div'); delWrap.className='col-span-3 flex justify-end';
+        const btnDel = document.createElement('button'); btnDel.className='btn-ghost text-rose-600 text-xs md:text-sm'; btnDel.textContent='Șterge';
         btnDel.addEventListener('click', ()=>{ if (!confirm('Ștergi această linie?')) return; state.lines = state.lines.filter(x=>x.id!==line.id); save(); rerender(); });
-        delRow.appendChild(btnDel);
-        list.appendChild(row);
-        list.appendChild(delRow);
+        delWrap.appendChild(btnDel);
+        row.append(delWrap);
       } else {
-        list.appendChild(row);
+        const spacer = document.createElement('div'); spacer.className='col-span-2';
+        row.append(spacer);
       }
+
+      list.appendChild(row);
     });
 
     const totalWrap = document.createElement('div'); totalWrap.className='mt-3 pt-3 border-t border-slate-200';
@@ -457,7 +464,7 @@
   }
 
   function renderGroups() {
-    // Plan (detaliat, fără butoane de ștergere sau Adaugă)
+    // Plan (detaliat, fără butoane de adăugare/ștergere)
     elGroupsPlan.innerHTML = '';
     [GroupKey.BAZA, GroupKey.SOCIALE, GroupKey.ECONOMII, GroupKey.INVESTITII].forEach(k => {
       elGroupsPlan.appendChild(groupBlock(k, { planMode: true }).card);
