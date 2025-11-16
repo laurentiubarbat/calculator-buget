@@ -5,622 +5,1109 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0f172a" />
   <title>Buget personal – planificator lunar (PWA)</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <!-- Tailwind via CDN pentru stilizare rapidă -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="manifest" href="manifest.webmanifest" />
   <style>
-    .card { @apply bg-white rounded-2xl shadow-sm border border-slate-200; }
-    .card-body { @apply p-4 md:p-6; }
-    .btn { @apply inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-medium border border-slate-200 bg-slate-50 hover:bg-slate-100 transition shadow-sm; }
-    .btn-primary { @apply border-transparent bg-sky-600 text-white hover:bg-sky-700 shadow; }
-    .btn-danger { @apply border-transparent bg-rose-600 text-white hover:bg-rose-700 shadow; }
-    .btn-ghost { @apply border-transparent bg-transparent hover:bg-slate-100; }
-    .input { @apply w-full rounded-xl border border-slate-300 px-3 py-2 text-sm; }
-    .switch { width: 36px; height: 22px; position: relative; display: inline-block; }
-    .switch input { display:none; }
-    .slider { position:absolute; cursor:pointer; inset:0; background:#cbd5e1; transition:.2s; border-radius:999px; }
-    .slider:before { content:""; position:absolute; height:18px; width:18px; left:2px; top:2px; background:white; transition:.2s; border-radius:999px; }
-    input:checked + .slider { background:#0ea5e9; }
-    input:checked + .slider:before { transform:translateX(14px); }
-    .tab-btn { @apply px-3 py-2 rounded-xl text-sm font-medium border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100; }
-    .tab-btn.active { @apply bg-slate-900 text-white border-slate-900 shadow; }
-    .grid-header { @apply grid grid-cols-12 items-center gap-2 text-xs font-medium text-slate-500 px-1 mb-1; }
-    .group-title { @apply text-xl font-bold tracking-tight; }
-    .group-sub { @apply text-xs text-slate-500; }
-    .kpi { @apply text-xl font-semibold; }
+    :root {
+      --bg-main: #f3f4f6;
+      --bg-card: #ffffff;
+      --border-subtle: #e5e7eb;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --danger: #dc2626;
+      --danger-soft: #fee2e2;
+      --radius-lg: 16px;
+      --radius-md: 10px;
+      --shadow-soft: 0 10px 20px rgba(15, 23, 42, 0.05);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom, #f9fafb, #e5e7eb);
+      color: var(--text-main);
+    }
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 18px 16px 40px;
+    }
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-soft);
+      padding: 16px 18px;
+      margin-bottom: 16px;
+    }
+    .card-header { margin-bottom: 8px; }
+    h1 {
+      font-size: 1.8rem;
+      margin: 4px 0;
+    }
+    .text-sm { font-size: 0.875rem; }
+    .text-xs { font-size: 0.75rem; }
+    .muted { color: var(--text-muted); }
+
+    .row { display: flex; flex-wrap: wrap; gap: 12px 16px; }
+    .row-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .col { flex: 1 1 0; min-width: 220px; }
+
+    select, input[type="text"], input[type="number"], input[type="range"], input[type="file"] {
+      font-family: inherit;
+    }
+    .input {
+      width: 100%;
+      border-radius: var(--radius-md);
+      border: 1px solid #d1d5db;
+      padding: 6px 8px;
+      font-size: 0.9rem;
+    }
+    .input:focus {
+      outline: 2px solid var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      background: #f9fafb;
+      color: #111827;
+      cursor: pointer;
+      gap: 6px;
+      transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+    }
+    .btn:hover { background: #e5e7eb; }
+    .btn:active { transform: translateY(1px); }
+
+    .btn-primary {
+      border-color: transparent;
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
+    }
+    .btn-primary:hover { background: #1d4ed8; }
+
+    .btn-danger {
+      border-color: transparent;
+      background: var(--danger);
+      color: #ffffff;
+      box-shadow: 0 8px 18px rgba(220, 38, 38, 0.25);
+    }
+    .btn-danger:hover { background: #b91c1c; }
+
+    .btn-ghost {
+      border-color: transparent;
+      background: transparent;
+      color: var(--text-muted);
+      padding-inline: 4px;
+    }
+    .btn-ghost:hover { background: #f3f4f6; color: #b91c1c; }
+
+    .chip-tab {
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      padding: 6px 12px;
+      background: #f9fafb;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #374151;
+      cursor: pointer;
+      margin-right: 4px;
+      margin-bottom: 4px;
+    }
+    .chip-tab.active {
+      background: #111827;
+      color: #ffffff;
+      border-color: #111827;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.25);
+    }
+
+    .kpi-label { font-size: 0.8rem; color: var(--text-muted); }
+    .kpi-value { font-size: 1.1rem; font-weight: 600; }
+
+    .split-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .split-card {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      padding: 10px 12px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .split-title { font-size: 0.9rem; font-weight: 600; }
+    .split-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+    .switch {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      display: inline-block;
+    }
+    .switch input { display: none; }
+    .slider {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: #d1d5db;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .slider::before {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: #ffffff;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .switch input:checked + .slider { background: #0ea5e9; }
+    .switch input:checked + .slider::before { transform: translateX(16px); }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1.2fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      .metrics-grid { grid-template-columns: 1fr; }
+    }
+
+    .plan-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+    @media (min-width: 900px) {
+      .plan-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    .group-card {
+      background: #ffffff;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      padding: 14px 14px 12px;
+      box-shadow: var(--shadow-soft);
+    }
+    .group-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0 0 2px;
+    }
+    .group-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin: 0 0 10px;
+    }
+
+    .budget-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) 110px 90px 60px 80px;
+      column-gap: 8px;
+      align-items: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6b7280;
+      padding: 4px 0;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 4px;
+    }
+    .budget-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) 110px 90px 60px 80px;
+      column-gap: 8px;
+      align-items: center;
+      padding: 4px 0;
+      font-size: 0.85rem;
+    }
+    .budget-row input[type="text"] {
+      width: 100%;
+      padding: 5px 7px;
+      font-size: 0.84rem;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+    }
+    .budget-row input[type="text"]:focus {
+      outline: 2px solid var(--accent-soft);
+      border-color: var(--accent);
+    }
+    .amount-input {
+      text-align: right;
+    }
+    .percent-cell {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+    .switch-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .action-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .delete-link {
+      border: none;
+      background: transparent;
+      color: var(--danger);
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 2px 4px;
+    }
+    .delete-link:hover { color: #b91c1c; text-decoration: underline; }
+
+    .group-total {
+      border-top: 1px solid #e5e7eb;
+      margin-top: 8px;
+      padding-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    footer {
+      margin-top: 16px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-align: left;
+    }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-b from-white to-slate-50 p-4 md:p-8">
-  <div class="max-w-7xl mx-auto space-y-6" id="app">
+<body>
+  <div class="page" id="app">
     <!-- Sfat sus -->
     <div class="card">
-      <div class="card-body py-3">
-        <p class="text-sm text-slate-700"><strong>Sfat:</strong> Prioritizează cheltuielile de bază și fondul de urgență, țintește 15–20% economii/investiții și revizuiește lunar bugetul. Poți exporta CSV/JSON și lucra offline (PWA).</p>
+      <p class="text-sm">
+        <strong>Sfat:</strong> Prioritizează cheltuielile de bază și fondul de urgență, țintește 15–20% economii/investiții și revizuiește lunar bugetul. Poți exporta CSV/JSON și lucra offline (PWA).
+      </p>
+    </div>
+
+    <!-- Header + acțiuni -->
+    <div class="card">
+      <div class="row-between">
+        <div>
+          <h1>Buget personal – planificator lunar</h1>
+          <p class="text-sm muted">Planifică-ți bugetul lunar: venituri, cheltuieli, economii, investiții. Ajustează automat pentru a te încadra în venit sau pentru a optimiza alocările.</p>
+        </div>
+        <div class="row" style="justify-content:flex-end; gap:6px;">
+          <select id="currency" class="input" style="max-width:110px;">
+            <option value="RON">RON</option>
+            <option value="EUR">EUR</option>
+            <option value="USD">USD</option>
+          </select>
+          <button id="btnReset" class="btn btn-danger">Resetează tot</button>
+          <button id="btnExportCSV" class="btn">CSV</button>
+          <button id="btnExportJSON" class="btn">Salvează JSON</button>
+          <label class="btn" style="cursor:pointer;">
+            <input id="import-json" type="file" accept="application/json" style="display:none;" />
+            Import JSON
+          </label>
+        </div>
       </div>
     </div>
 
-    <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-      <div>
-        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Buget personal – planificator lunar</h1>
-        <p class="text-sm text-slate-600 max-w-2xl">Planifică-ți bugetul lunar: venituri, cheltuieli, economii, investiții. Ajustează automat pentru a te încadra în venit sau optimizează alocările.</p>
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <select id="currency" class="input w-[120px]">
-          <option value="RON">RON</option>
-          <option value="EUR">EUR</option>
-          <option value="USD">USD</option>
-        </select>
-        <button id="btnReset" class="btn-danger">Resetează tot</button>
-        <button id="btnExportCSV" class="btn">CSV</button>
-        <button id="btnExportJSON" class="btn">Salvează JSON</button>
-        <label class="btn cursor-pointer">
-          <input id="import-json" type="file" accept="application/json" class="hidden" />
-          Import JSON
-        </label>
-      </div>
-    </header>
+    <!-- Metrici principale -->
+    <div class="card">
+      <div class="metrics-grid">
+        <div>
+          <div class="kpi-label">Venit lunar (net)</div>
+          <div class="row" style="align-items:center; gap:6px; margin-top:4px;">
+            <input id="incomeInput" class="input" inputmode="decimal" placeholder="0.00" />
+            <span id="incomeFormatted" class="text-sm muted">0</span>
+          </div>
+          <input id="incomeSlider" type="range" min="0" max="50000" step="100" style="width:100%; margin-top:10px;" />
+          <div class="text-xs muted" style="margin-top:2px;">Glisează pentru scenarii rapide (max 50.000)</div>
+        </div>
 
-    <!-- Panou metrici -->
-    <section class="card">
-      <div class="card-body space-y-4">
-        <div class="grid md:grid-cols-3 gap-4">
-          <div>
-            <label class="text-sm font-medium">Venit lunar (net)</label>
-            <div class="flex items-center gap-2 mt-1">
-              <input id="incomeInput" class="input" inputmode="decimal" placeholder="0.00" />
-              <span id="incomeFormatted" class="text-sm text-slate-600">0</span>
+        <div>
+          <div class="row" style="gap:12px; flex-wrap:wrap;">
+            <div class="col">
+              <div class="kpi-label">Total cheltuieli de bază</div>
+              <div id="totBaza" class="kpi-value">0</div>
             </div>
-            <input id="incomeSlider" type="range" min="0" max="50000" step="100" class="w-full mt-2" />
-            <p class="text-xs text-slate-500">Glisează pentru scenarii rapide (max 50.000)</p>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-sm font-medium">Total cheltuieli de bază</label>
-              <p id="totBaza" class="kpi">0</p>
-            </div>
-            <div>
-              <label class="text-sm font-medium">Total cheltuieli sociale</label>
-              <p id="totSociale" class="kpi">0</p>
-            </div>
-            <div>
-              <label class="text-sm font-medium">Total economii</label>
-              <p id="totEconomii" class="kpi">0</p>
-            </div>
-            <div>
-              <label class="text-sm font-medium">Total investiții</label>
-              <p id="totInvestitii" class="kpi">0</p>
+            <div class="col">
+              <div class="kpi-label">Total cheltuieli sociale</div>
+              <div id="totSociale" class="kpi-value">0</div>
             </div>
           </div>
-          <div class="flex flex-col gap-2">
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="text-sm font-medium">Venit necesar</label>
-                <p id="venitNecesat" class="text-lg font-semibold">0</p>
-              </div>
-              <div>
-                <label class="text-sm font-medium">Surplus / Deficit</label>
-                <p id="surplus" class="text-lg font-semibold">0</p>
-              </div>
+          <div class="row" style="gap:12px; flex-wrap:wrap; margin-top:6px;">
+            <div class="col">
+              <div class="kpi-label">Total economii</div>
+              <div id="totEconomii" class="kpi-value">0</div>
             </div>
-            <div>
-              <label class="text-sm font-medium">Rată de economisire</label>
-              <p id="savingsRate" class="text-lg font-semibold">0%</p>
-            </div>
-            <div class="flex flex-wrap gap-2 mt-1">
-              <button id="btnAutobalance" class="btn-primary">Autobalansează</button>
+            <div class="col">
+              <div class="kpi-label">Total investiții</div>
+              <div id="totInvestitii" class="kpi-value">0</div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
 
-    <!-- Split pe grupe -->
-    <section class="card">
-      <div class="card-body space-y-3">
-        <label class="text-sm font-medium">Împărțire buget pe grupe (suma activelor = 100%)</label>
-        <div class="grid md:grid-cols-4 gap-3" id="splitGrid"></div>
-        <div class="text-xs text-slate-500">Total activ: <span id="splitTotal">0</span>%</div>
-        <div class="flex gap-2">
-          <button id="btnApplySplit" class="btn-primary">Aplică împărțirea pe grupe</button>
+        <div>
+          <div class="row" style="gap:12px; flex-wrap:wrap;">
+            <div class="col">
+              <div class="kpi-label">Venit necesar</div>
+              <div id="venitNecesat" class="kpi-value">0</div>
+            </div>
+            <div class="col">
+              <div class="kpi-label">Surplus / Deficit</div>
+              <div id="surplus" class="kpi-value">0</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;">
+            <div class="kpi-label">Rată de economisire</div>
+            <div id="savingsRate" class="kpi-value">0%</div>
+          </div>
+          <div style="margin-top:10px;">
+            <button id="btnAutobalance" class="btn btn-primary">Autobalansează</button>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- Tabs simple -->
-    <div>
-      <div class="flex flex-wrap gap-2 mb-3">
-        <button class="tab-btn active" data-tab="plan">Plan general</button>
-        <button class="tab-btn" data-tab="cheltuieli_baza">Cheltuieli de bază</button>
-        <button class="tab-btn" data-tab="cheltuieli_sociale">Cheltuieli sociale</button>
-        <button class="tab-btn" data-tab="economii">Economii</button>
-        <button class="tab-btn" data-tab="investitii">Investiții</button>
+    <!-- Împărțire pe grupe -->
+    <div class="card">
+      <div class="card-header">
+        <div class="text-sm" style="font-weight:600;">Împărțire buget pe grupe (suma activelor = 100%)</div>
+      </div>
+      <div class="split-grid" id="splitGrid"></div>
+      <div class="text-xs muted" style="margin-top:6px;">Total activ: <span id="splitTotal">0</span>%</div>
+      <div style="margin-top:10px;">
+        <button id="btnApplySplit" class="btn btn-primary">Aplică împărțirea pe grupe</button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="card">
+      <div style="margin-bottom:10px; display:flex; flex-wrap:wrap; gap:4px 6px;">
+        <button class="chip-tab active" data-tab="plan">Plan general</button>
+        <button class="chip-tab" data-tab="cheltuieli_baza">Cheltuieli de bază</button>
+        <button class="chip-tab" data-tab="cheltuieli_sociale">Cheltuieli sociale</button>
+        <button class="chip-tab" data-tab="economii">Economii</button>
+        <button class="chip-tab" data-tab="investitii">Investiții</button>
       </div>
 
-      <section id="tab-plan" class="space-y-4">
-        <div class="card"><div class="card-body">
-          <p class="text-sm text-slate-600">Rezumat detaliat al tuturor grupelor. Poți edita direct sumele și vezi instant procentul fiecărei linii din venitul lunar. Pentru adăugare/ștergere de linii folosește tab-urile fiecărei grupe.</p>
-        </div></div>
-        <!-- Plan general: 2x2 carduri pentru grupuri -->
-        <div class="grid md:grid-cols-2 lg:grid-cols-2 gap-4" id="groupsContainerPlan"></div>
+      <!-- PLAN GENERAL -->
+      <section id="tab-plan" class="tab-section">
+        <p class="text-sm muted" style="margin-bottom:12px;">Rezumat detaliat al tuturor grupelor. Poți edita direct sumele și vezi instant procentul fiecărei linii din venitul lunar. Pentru adăugare/ștergere de linii folosește tab-urile fiecărei grupe.</p>
+        <div class="plan-grid" id="groupsContainerPlan"></div>
       </section>
 
-      <section id="tab-cheltuieli_baza" class="hidden"></section>
-      <section id="tab-cheltuieli_sociale" class="hidden"></section>
-      <section id="tab-economii" class="hidden"></section>
-      <section id="tab-investitii" class="hidden"></section>
+      <!-- TABURI DETALIU -->
+      <section id="tab-cheltuieli_baza" class="tab-section" style="display:none;"></section>
+      <section id="tab-cheltuieli_sociale" class="tab-section" style="display:none;"></section>
+      <section id="tab-economii" class="tab-section" style="display:none;"></section>
+      <section id="tab-investitii" class="tab-section" style="display:none;"></section>
     </div>
 
-    <footer class="pt-2 pb-8 text-xs text-slate-500">
-      <div>Funcționează offline după primul acces (PWA). Pentru instalare: browser-ul va propune „Install app” sau folosește meniul „Add to Home Screen”.</div>
+    <footer>
+      Funcționează offline după primul acces (PWA). Pentru instalare: browser-ul va propune „Install app” sau folosește meniul „Add to Home Screen”.
     </footer>
   </div>
 
   <script>
-  // ======================= PWA register =======================
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(console.warn);
-    });
-  }
+    // ======================= PWA register =======================
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js').catch(function (e) { console.warn(e); });
+      });
+    }
 
-  // ======================= STATE & HELPERS =======================
-  const STORAGE_KEY = 'budget_ro_html_pwa_v4';
-  const RON = 'RON';
-  const GroupKey = {
-    BAZA: 'cheltuieli_baza',
-    SOCIALE: 'cheltuieli_sociale',
-    ECONOMII: 'economii',
-    INVESTITII: 'investitii',
-  };
+    // ======================= STATE & HELPERS =======================
+    var STORAGE_KEY = 'budget_ro_html_pwa_v5';
+    var RON = 'RON';
+    var GroupKey = {
+      BAZA: 'cheltuieli_baza',
+      SOCIALE: 'cheltuieli_sociale',
+      ECONOMII: 'economii',
+      INVESTITII: 'investitii'
+    };
 
-  const presets = {
-    [GroupKey.BAZA]: [
-      'Locuință (chirie/rată)', 'Utilități (electricitate, gaz, apă)', 'Internet/Telefon', 'Transport', 'Alimentație', 'Sănătate/Asigurări', 'Îmbrăcăminte & Încălțăminte', 'Datorii/Rate consum'
-    ],
-    [GroupKey.SOCIALE]: [
-      'Divertisment & Ieșiri', 'Restaurante & Cafenele', 'Vacanțe & Călătorii', 'Cadouri & Ocazii speciale', 'Abonamente (Netflix/Spotify etc.)', 'Educație/Cursuri', 'Sport & Wellness', 'Altele sociale'
-    ],
-    [GroupKey.ECONOMII]: [
-      'Fond de urgență', 'Economii pentru obiectiv (ex. avans locuință)', 'Economii vacanțe', 'Economii mașină', 'Pilon III / Pensie facultativă', 'Reparații/Renovări', 'Înlocuire electrocasnice', 'Alte economii'
-    ],
-    [GroupKey.INVESTITII]: [
-      'ETF/Acțiuni', 'Obligațiuni/Titluri de stat', 'Crypto (speculativ)', 'Imobiliare', 'Alte investiții'
-    ],
-  };
-
-  const uid = () => Math.random().toString(36).slice(2, 10);
-
-  const defaultSplitActive = {
-    [GroupKey.BAZA]: true,
-    [GroupKey.SOCIALE]: true,
-    [GroupKey.ECONOMII]: true,
-    [GroupKey.INVESTITII]: true,
-  };
-  const defaultSplitPct = {
-    [GroupKey.BAZA]: 50,
-    [GroupKey.SOCIALE]: 20,
-    [GroupKey.ECONOMII]: 20,
-    [GroupKey.INVESTITII]: 10,
-  };
-
-  function fmtCurrency(ccy, n) {
-    try { return new Intl.NumberFormat('ro-RO', { style: 'currency', currency: ccy }).format(n || 0); }
-    catch { return (n || 0).toFixed(2) + ' ' + ccy; }
-  }
-
-  function toCSV(rows) {
-    if (!rows.length) return '';
-    const headers = Object.keys(rows[0]);
-    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
-    const csv = [headers.join(',')]
-      .concat(rows.map(r => headers.map(h => esc(r[h] ?? '')).join(',')))
-      .join('\n');
-    return csv;
-  }
-
-  function saveFile(filename, content, mime) {
-    const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  // ======================= APP STATE =======================
-  const state = {
-    currency: RON,
-    income: 0,
-    lines: [], // {id, name, amount, fixed, group}
-    splitActive: { ...defaultSplitActive },
-    splitPct: { ...defaultSplitPct },
-  };
-
-  function initDefaultLines() {
-    const make = (names, group, fixed) => names.map(n => ({ id: uid(), name: n, amount: 0, fixed, group }));
-    state.lines = [
-      ...make(presets[GroupKey.BAZA], GroupKey.BAZA, true),
-      ...make(presets[GroupKey.SOCIALE], GroupKey.SOCIALE, false),
-      ...make(presets[GroupKey.ECONOMII], GroupKey.ECONOMII, true),
-      ...make(presets[GroupKey.INVESTITII], GroupKey.INVESTITII, false),
+    var presets = {};
+    presets[GroupKey.BAZA] = [
+      'Locuință (chirie/rată)',
+      'Utilități (electricitate, gaz, apă)',
+      'Internet/Telefon',
+      'Transport',
+      'Alimentație',
+      'Sănătate/Asigurări',
+      'Îmbrăcăminte & Încălțăminte',
+      'Datorii/Rate consum'
     ];
-  }
+    presets[GroupKey.SOCIALE] = [
+      'Divertisment & Ieșiri',
+      'Restaurante & Cafenele',
+      'Vacanțe & Călătorii',
+      'Cadouri & Ocazii speciale',
+      'Abonamente (Netflix/Spotify etc.)',
+      'Educație/Cursuri',
+      'Sport & Wellness',
+      'Altele sociale'
+    ];
+    presets[GroupKey.ECONOMII] = [
+      'Fond de urgență',
+      'Economii pentru obiectiv (ex. avans locuință)',
+      'Economii vacanțe',
+      'Economii mașină',
+      'Pilon III / Pensie facultativă',
+      'Reparații/Renovări',
+      'Înlocuire electrocasnice',
+      'Alte economii'
+    ];
+    presets[GroupKey.INVESTITII] = [
+      'ETF/Acțiuni',
+      'Obligațiuni/Titluri de stat',
+      'Crypto (speculativ)',
+      'Imobiliare',
+      'Alte investiții'
+    ];
 
-  function load() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) { initDefaultLines(); return; }
-      const data = JSON.parse(raw);
-      state.currency = data.currency || RON;
-      state.income = Number(data.income || 0);
-      state.lines = Array.isArray(data.lines) ? data.lines.map(l => ({
-        id: l.id || uid(),
-        name: String(l.name || ''),
-        amount: Number(l.amount || 0),
-        fixed: !!l.fixed,
-        group: l.group,
-      })) : [];
-      if (!state.lines.length) initDefaultLines();
-      state.splitActive = { ...defaultSplitActive, ...(data.splitActive || {}) };
-      state.splitPct = { ...defaultSplitPct, ...(data.splitPct || {}) };
-    } catch(e) {
-      console.warn('Load failed', e); initDefaultLines();
-    }
-  }
-
-  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-
-  // ======================= RENDER =======================
-  const elCurrency = document.getElementById('currency');
-  const elIncomeInput = document.getElementById('incomeInput');
-  const elIncomeSlider = document.getElementById('incomeSlider');
-  const elIncomeFormatted = document.getElementById('incomeFormatted');
-  const elTotBaza = document.getElementById('totBaza');
-  const elTotSociale = document.getElementById('totSociale');
-  const elTotEconomii = document.getElementById('totEconomii');
-  const elTotInvestitii = document.getElementById('totInvestitii');
-  const elVenitNec = document.getElementById('venitNecesat');
-  const elSurplus = document.getElementById('surplus');
-  const elSavings = document.getElementById('savingsRate');
-  const elSplitGrid = document.getElementById('splitGrid');
-  const elSplitTotal = document.getElementById('splitTotal');
-  const elGroupsPlan = document.getElementById('groupsContainerPlan');
-
-  function renderTop() {
-    elCurrency.value = state.currency;
-    elIncomeInput.value = String(state.income);
-    elIncomeSlider.value = String(Math.min(state.income, 50000));
-    elIncomeFormatted.textContent = fmtCurrency(state.currency, state.income);
-  }
-
-  function totalsByGroup() {
-    const sum = g => state.lines.filter(l => g ? l.group === g : true).reduce((a,b)=>a+(Number(b.amount)||0),0);
-    return {
-      baza: sum(GroupKey.BAZA),
-      sociale: sum(GroupKey.SOCIALE),
-      economii: sum(GroupKey.ECONOMII),
-      investitii: sum(GroupKey.INVESTITII),
-    };
-  }
-
-  function renderMetrics() {
-    const t = totalsByGroup();
-    const totalOut = t.baza + t.sociale + t.economii + t.investitii;
-    elTotBaza.textContent = fmtCurrency(state.currency, t.baza);
-    elTotSociale.textContent = fmtCurrency(state.currency, t.sociale);
-    elTotEconomii.textContent = fmtCurrency(state.currency, t.economii);
-    elTotInvestitii.textContent = fmtCurrency(state.currency, t.investitii);
-    elVenitNec.textContent = fmtCurrency(state.currency, totalOut);
-    const sp = state.income - totalOut;
-    elSurplus.textContent = fmtCurrency(state.currency, sp);
-    elSurplus.className = 'text-lg font-semibold ' + (sp >= 0 ? 'text-emerald-600' : 'text-rose-600');
-    const savings = state.income>0 ? ((t.economii + t.investitii)/state.income*100) : 0;
-    elSavings.textContent = savings.toFixed(1) + '%';
-  }
-
-  function renderSplit() {
-    elSplitGrid.innerHTML = '';
-    const keys = [GroupKey.BAZA, GroupKey.SOCIALE, GroupKey.ECONOMII, GroupKey.INVESTITII];
-    let total = 0;
-    keys.forEach(k => { if (state.splitActive[k]) total += (state.splitPct[k]||0); });
-    elSplitTotal.textContent = (total).toFixed(1);
-
-    keys.forEach(key => {
-      const wrap = document.createElement('div'); wrap.className = 'p-3 rounded-2xl border bg-white flex flex-col gap-2';
-      const top = document.createElement('div'); top.className = 'flex items-center justify-between';
-      const title = document.createElement('span'); title.className = 'text-sm font-medium';
-      title.textContent = {
-        [GroupKey.BAZA]: 'Cheltuieli de bază',
-        [GroupKey.SOCIALE]: 'Cheltuieli sociale',
-        [GroupKey.ECONOMII]: 'Economii',
-        [GroupKey.INVESTITII]: 'Investiții',
-      }[key];
-      const right = document.createElement('div'); right.className = 'flex items-center gap-2 text-xs';
-      const lab = document.createElement('span'); lab.className = 'text-slate-500'; lab.textContent = 'Activ';
-      const sw = document.createElement('label'); sw.className = 'switch';
-      const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = !!state.splitActive[key];
-      const sldr = document.createElement('span'); sldr.className = 'slider';
-      sw.append(chk, sldr); right.append(lab, sw);
-      chk.addEventListener('change', ()=>{ state.splitActive[key] = chk.checked; save(); renderSplit(); renderGroups(); });
-      top.append(title, right);
-
-      const mid = document.createElement('div'); mid.className = 'flex items-center gap-2';
-      const input = document.createElement('input'); input.className = 'input w-24'; input.inputMode = 'decimal'; input.value = String(state.splitPct[key]||0);
-      const pct = document.createElement('span'); pct.className='text-sm'; pct.textContent='%';
-      input.addEventListener('input', ()=> setSplitWithAutoAdjust(key, Number(input.value.toString().replace(',', '.')) || 0));
-      mid.append(input, pct);
-
-      wrap.append(top, mid);
-      elSplitGrid.appendChild(wrap);
-    });
-  }
-
-  function groupBlock(groupKey, opts={ planMode:false }) {
-    const card = document.createElement('div'); card.className = 'card';
-    const body = document.createElement('div'); body.className = 'card-body';
-
-    const titles = {
-      [GroupKey.BAZA]: ['Cheltuieli de bază', 'Cheltuieli esențiale și obligatorii'],
-      [GroupKey.SOCIALE]: ['Cheltuieli sociale', 'Lifestyle și divertisment'],
-      [GroupKey.ECONOMII]: ['Economii', 'Fond de siguranță și obiective'],
-      [GroupKey.INVESTITII]: ['Investiții', 'Creștere pe termen lung'],
-    }[groupKey];
-
-    const head = document.createElement('div'); head.className = 'flex items-center justify-between gap-2 mb-3';
-    const left = document.createElement('div');
-    const t = document.createElement('h3'); t.className='group-title'; t.textContent=titles[0];
-    const s = document.createElement('p'); s.className='group-sub';
-    const active = state.splitActive[groupKey];
-    const pctAlloc = state.splitPct[groupKey] || 0;
-    s.textContent = titles[1] + (active ? ` • Alocat: ${pctAlloc.toFixed(1)}%` : ' • Alocat: —');
-    left.append(t, s);
-    head.append(left);
-
-    if (!opts.planMode) {
-      const right = document.createElement('div'); right.className='flex items-center gap-2';
-      const btnAdd = document.createElement('button'); btnAdd.className='btn-primary'; btnAdd.textContent='Adaugă linie';
-      btnAdd.addEventListener('click', ()=>{
-        const name = prompt('Numele liniei (ex. Cadouri, Fitness etc.)');
-        if (!name) return;
-        const fixed = (groupKey===GroupKey.BAZA || groupKey===GroupKey.ECONOMII);
-        state.lines.push({ id: uid(), name, amount:0, fixed, group: groupKey });
-        save(); rerender();
-      });
-      right.appendChild(btnAdd);
-      head.appendChild(right);
+    function uid() {
+      return Math.random().toString(36).slice(2, 10);
     }
 
-    body.appendChild(head);
+    var defaultSplitActive = {};
+    defaultSplitActive[GroupKey.BAZA] = true;
+    defaultSplitActive[GroupKey.SOCIALE] = true;
+    defaultSplitActive[GroupKey.ECONOMII] = true;
+    defaultSplitActive[GroupKey.INVESTITII] = true;
 
-    const header = document.createElement('div'); header.className='grid-header';
-    header.innerHTML = opts.planMode
-      ? '<div class="col-span-5">Categorie</div><div class="col-span-2 text-right">Sumă lunar</div><div class="col-span-2 text-right">% din venit</div><div class="col-span-1 text-center">Fix</div><div class="col-span-2"></div>'
-      : '<div class="col-span-4">Categorie</div><div class="col-span-2 text-right">Sumă lunar</div><div class="col-span-2 text-right">% din venit</div><div class="col-span-1 text-center">Fix</div><div class="col-span-3 text-right">Acțiune</div>';
+    var defaultSplitPct = {};
+    defaultSplitPct[GroupKey.BAZA] = 50;
+    defaultSplitPct[GroupKey.SOCIALE] = 20;
+    defaultSplitPct[GroupKey.ECONOMII] = 20;
+    defaultSplitPct[GroupKey.INVESTITII] = 10;
 
-    const list = document.createElement('div'); list.className='space-y-2';
-    const lines = state.lines.filter(l=>l.group===groupKey);
-
-    lines.forEach(line => {
-      const row = document.createElement('div'); row.className='grid grid-cols-12 gap-2 items-center';
-
-      const cName = document.createElement('input');
-      cName.className = opts.planMode ? 'input col-span-5' : 'input col-span-4';
-      cName.value=line.name; cName.placeholder='Nume categorie';
-      cName.addEventListener('input', ()=>{ line.name = cName.value; save(); });
-
-      const cAmt = document.createElement('input'); cAmt.className='input col-span-2 text-right'; cAmt.inputMode='decimal'; cAmt.placeholder='0.00'; cAmt.value=String(line.amount);
-      cAmt.addEventListener('focus', ()=>{ cAmt.select(); });
-
-      const pctDiv = document.createElement('div'); pctDiv.className='col-span-2 text-right text-xs md:text-sm text-slate-600';
-      function updatePct() {
-        if (state.income > 0) {
-          const p = (Number(line.amount) || 0) / state.income * 100;
-          pctDiv.textContent = p.toFixed(1) + '%';
-        } else {
-          pctDiv.textContent = '—';
-        }
-      }
-      updatePct();
-
-      cAmt.addEventListener('input', ()=>{
-        const v = Number(cAmt.value.toString().replace(',', '.'));
-        line.amount = isFinite(v) ? v : 0;
-        updatePct();
-        renderMetrics(); save();
-      });
-
-      const cFixedWrap = document.createElement('label'); cFixedWrap.className='col-span-1 flex justify-center switch'; cFixedWrap.title='Fix = nu se ajustează automat';
-      const cFixed = document.createElement('input'); cFixed.type='checkbox'; cFixed.checked=!!line.fixed;
-      const cFixedSlider = document.createElement('span'); cFixedSlider.className='slider';
-      cFixed.addEventListener('change', ()=>{ line.fixed = cFixed.checked; save(); });
-      cFixedWrap.append(cFixed, cFixedSlider);
-
-      row.append(cName, cAmt, pctDiv, cFixedWrap);
-
-      if (!opts.planMode) {
-        const delWrap = document.createElement('div'); delWrap.className='col-span-3 flex justify-end';
-        const btnDel = document.createElement('button'); btnDel.className='btn-ghost text-rose-600 text-xs md:text-sm'; btnDel.textContent='Șterge';
-        btnDel.addEventListener('click', ()=>{ if (!confirm('Ștergi această linie?')) return; state.lines = state.lines.filter(x=>x.id!==line.id); save(); rerender(); });
-        delWrap.appendChild(btnDel);
-        row.append(delWrap);
-      } else {
-        const spacer = document.createElement('div'); spacer.className='col-span-2';
-        row.append(spacer);
-      }
-
-      list.appendChild(row);
-    });
-
-    const totalWrap = document.createElement('div'); totalWrap.className='mt-3 pt-3 border-t border-slate-200';
-    const totalFx = document.createElement('div'); totalFx.className='flex justify-between items-center text-sm';
-    const tl = document.createElement('span'); tl.className='font-medium'; tl.textContent='Total:';
-    const tv = document.createElement('span'); tv.className='font-semibold';
-    const tot = state.lines.filter(l=>l.group===groupKey).reduce((s,l)=>s+(Number(l.amount)||0),0);
-    tv.textContent = fmtCurrency(state.currency, tot);
-    totalFx.append(tl, tv); totalWrap.appendChild(totalFx);
-
-    body.append(header, list, totalWrap);
-    card.appendChild(body);
-    return { card };
-  }
-
-  function renderGroups() {
-    // Plan (detaliat, fără butoane de adăugare/ștergere)
-    elGroupsPlan.innerHTML = '';
-    [GroupKey.BAZA, GroupKey.SOCIALE, GroupKey.ECONOMII, GroupKey.INVESTITII].forEach(k => {
-      elGroupsPlan.appendChild(groupBlock(k, { planMode: true }).card);
-    });
-
-    // Tab-uri detaliate (cu Adaugă/Șterge)
-    const sections = {
-      [GroupKey.BAZA]: document.getElementById('tab-cheltuieli_baza'),
-      [GroupKey.SOCIALE]: document.getElementById('tab-cheltuieli_sociale'),
-      [GroupKey.ECONOMII]: document.getElementById('tab-economii'),
-      [GroupKey.INVESTITII]: document.getElementById('tab-investitii'),
-    };
-    Object.keys(sections).forEach(k => {
-      sections[k].innerHTML = '';
-      sections[k].appendChild(groupBlock(k, { planMode: false }).card);
-    });
-  }
-
-  function rerender() { renderTop(); renderSplit(); renderGroups(); renderMetrics(); save(); }
-
-  // ======================= LOGIC =======================
-  function autoBalanceToIncome() {
-    if (state.income <= 0) { alert('Introduceți un venit mai întâi!'); return; }
-    const fixedOut = state.lines.filter(l=>l.fixed).reduce((a,b)=>a+(b.amount||0),0);
-    const flex = state.lines.filter(l=>!l.fixed);
-    const flexSum = flex.reduce((a,b)=>a+(b.amount||0),0);
-    const targetFlex = Math.max(state.income - fixedOut, 0);
-    if (!flex.length) { alert('Nu există linii flexibile de ajustat!'); return; }
-    if (flexSum===0) { alert('Liniile flexibile au suma 0. Adăugați sume înainte de a balansa.'); return; }
-    if (targetFlex<0) { alert('Venitul este prea mic pentru a acoperi cheltuielile fixe!'); return; }
-    const k = targetFlex / flexSum;
-    flex.forEach(f=>{ f.amount = Number(((f.amount||0)*k).toFixed(2)); });
-    rerender();
-  }
-
-  function setSplitWithAutoAdjust(key, value) {
-    value = Math.max(0, Math.min(100, value));
-    const active = Object.keys(state.splitActive).filter(k=>state.splitActive[k]);
-    if (!active.includes(key)) { state.splitPct[key] = value; rerender(); return; }
-    const others = active.filter(k=>k!==key);
-    if (!others.length) { state.splitPct[key] = 100; rerender(); return; }
-    const newPct = { ...state.splitPct, [key]: value };
-    const lastActive = others[others.length-1];
-    const fixedOthers = others.filter(k=>k!==lastActive).reduce((a,k)=>a+(newPct[k]||0),0);
-    newPct[lastActive] = Math.max(0, 100 - value - fixedOthers);
-    state.splitPct = newPct; rerender();
-  }
-
-  function applySplitToGroups() {
-    if (state.income <= 0) { alert('Introduceți un venit mai întâi!'); return; }
-    const active = Object.keys(state.splitActive).filter(k=>state.splitActive[k]);
-    if (!active.length) { alert('Nicio casetă de split activă.'); return; }
-    const budget = {}; active.forEach(k=> budget[k] = (state.income * (state.splitPct[k]||0))/100);
-    const keys = [GroupKey.BAZA, GroupKey.SOCIALE, GroupKey.ECONOMII, GroupKey.INVESTITII];
-    keys.forEach(g => {
-      if (!(g in budget)) return;
-      const linesIn = state.lines.filter(l=>l.group===g);
-      const fixedSum = linesIn.filter(l=>l.fixed).reduce((a,b)=>a+(b.amount||0),0);
-      const target = budget[g]||0;
-      if (fixedSum > target) alert(`Atenție: cheltuielile/ economiile FIXE din "${g}" (${fixedSum.toFixed(2)}) depășesc bugetul alocat (${target.toFixed(2)}).`);
-      const flex = linesIn.filter(l=>!l.fixed);
-      const targetFlex = Math.max(target - fixedSum, 0);
-      if (!flex.length) return;
-      const flexSum = flex.reduce((a,b)=>a+(b.amount||0),0);
-      if (flexSum===0) { const eq = targetFlex / flex.length; flex.forEach(f=> f.amount = Number(eq.toFixed(2))); }
-      else { const k = targetFlex / flexSum; flex.forEach(f=> f.amount = Number(((f.amount||0)*k).toFixed(2))); }
-    });
-    rerender();
-  }
-
-  function exportCSV() {
-    const rows = state.lines.map(l=>({
-      Grup: l.group===GroupKey.BAZA? 'Cheltuieli de bază' : l.group===GroupKey.SOCIALE? 'Cheltuieli sociale' : l.group===GroupKey.ECONOMII? 'Economii' : 'Investiții',
-      Nume: l.name,
-      Suma: l.amount,
-      'Fix (nu se ajustează)': l.fixed? 'Da':'Nu',
-      '% din venit': state.income>0 ? ((l.amount/state.income)*100).toFixed(1) : '',
-    }));
-    saveFile('buget_personal.csv', toCSV(rows), 'text/csv;charset=utf-8');
-  }
-
-  function exportJSON() { saveFile('buget_personal.json', JSON.stringify(state, null, 2), 'application/json'); }
-
-  function importJSON(file) {
-    const reader = new FileReader();
-    reader.onload = () => {
+    function fmtCurrency(ccy, n) {
       try {
-        const data = JSON.parse(String(reader.result));
-        Object.assign(state, {
-          currency: data.currency || RON,
-          income: Number(data.income||0),
-          lines: Array.isArray(data.lines) ? data.lines.map(l=>({
-            id: l.id || uid(), name:String(l.name||''), amount:Number(l.amount||0), fixed:!!l.fixed, group:l.group
-          })) : [],
-          splitActive: { ...defaultSplitActive, ...(data.splitActive||{}) },
-          splitPct: { ...defaultSplitPct, ...(data.splitPct||{}) },
-        });
-        if (!state.lines.length) initDefaultLines();
-        alert('Import reușit.');
-        rerender();
-      } catch { alert('Fișier invalid.'); }
+        return new Intl.NumberFormat('ro-RO', { style: 'currency', currency: ccy }).format(n || 0);
+      } catch (e) {
+        return (n || 0).toFixed(2) + ' ' + ccy;
+      }
+    }
+
+    function toCSV(rows) {
+      if (!rows.length) return '';
+      var headers = Object.keys(rows[0]);
+      function esc(v) {
+        return '"' + String(v).replace(/"/g, '""') + '"';
+      }
+      var out = [headers.join(',')].concat(
+        rows.map(function (r) {
+          return headers.map(function (h) { return esc(r[h] == null ? '' : r[h]); }).join(',');
+        })
+      );
+      return out.join('\n');
+    }
+
+    function saveFile(filename, content, mime) {
+      var blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    // ======================= APP STATE =======================
+    var state = {
+      currency: RON,
+      income: 0,
+      lines: [],
+      splitActive: Object.assign({}, defaultSplitActive),
+      splitPct: Object.assign({}, defaultSplitPct)
     };
-    reader.readAsText(file);
-  }
 
-  function resetAll() {
-    if (!confirm('Sigur doriți să resetați toate valorile?')) return;
-    state.currency = RON; state.income = 0; state.splitActive = { ...defaultSplitActive }; state.splitPct = { ...defaultSplitPct }; initDefaultLines(); rerender();
-  }
+    function initDefaultLines() {
+      function make(names, group, fixed) {
+        return names.map(function (n) {
+          return { id: uid(), name: n, amount: 0, fixed: fixed, group: group };
+        });
+      }
+      state.lines = []
+        .concat(make(presets[GroupKey.BAZA], GroupKey.BAZA, true))
+        .concat(make(presets[GroupKey.SOCIALE], GroupKey.SOCIALE, false))
+        .concat(make(presets[GroupKey.ECONOMII], GroupKey.ECONOMII, true))
+        .concat(make(presets[GroupKey.INVESTITII], GroupKey.INVESTITII, false));
+    }
 
-  // ======================= EVENTS =======================
-  document.getElementById('btnAutobalance').addEventListener('click', autoBalanceToIncome);
-  document.getElementById('btnApplySplit').addEventListener('click', applySplitToGroups);
-  document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
-  document.getElementById('btnExportJSON').addEventListener('click', exportJSON);
-  document.getElementById('btnReset').addEventListener('click', resetAll);
-  document.getElementById('import-json').addEventListener('change', (e)=>{ const f=e.target.files?.[0]; if (f) { importJSON(f); e.target.value=''; } });
+    function load() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) { initDefaultLines(); return; }
+        var data = JSON.parse(raw);
+        state.currency = data.currency || RON;
+        state.income = Number(data.income || 0);
+        state.lines = Array.isArray(data.lines) ? data.lines.map(function (l) {
+          return {
+            id: l.id || uid(),
+            name: String(l.name || ''),
+            amount: Number(l.amount || 0),
+            fixed: !!l.fixed,
+            group: l.group
+          };
+        }) : [];
+        if (!state.lines.length) initDefaultLines();
+        state.splitActive = Object.assign({}, defaultSplitActive, data.splitActive || {});
+        state.splitPct = Object.assign({}, defaultSplitPct, data.splitPct || {});
+      } catch (e) {
+        console.warn('Load failed', e);
+        initDefaultLines();
+      }
+    }
 
-  elCurrency.addEventListener('change', ()=>{ state.currency = elCurrency.value; rerender(); });
-  elIncomeInput.addEventListener('focus', ()=>{ elIncomeInput.select(); });
-  elIncomeInput.addEventListener('input', ()=>{ const v = Number(elIncomeInput.value.toString().replace(',', '.')); state.income = isFinite(v)&&v>=0? v:0; renderMetrics(); save(); });
-  elIncomeSlider.addEventListener('input', ()=>{ const v = Number(elIncomeSlider.value); state.income = v; elIncomeInput.value=String(v); rerender(); });
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
 
-  // Tabs
-  document.querySelectorAll('.tab-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      const t = btn.getAttribute('data-tab');
-      document.querySelectorAll('[id^="tab-"]').forEach(sec=>sec.classList.add('hidden'));
-      document.getElementById('tab-'+t).classList.remove('hidden');
+    // ======================= RENDER HELPERS =======================
+    var elCurrency = document.getElementById('currency');
+    var elIncomeInput = document.getElementById('incomeInput');
+    var elIncomeSlider = document.getElementById('incomeSlider');
+    var elIncomeFormatted = document.getElementById('incomeFormatted');
+    var elTotBaza = document.getElementById('totBaza');
+    var elTotSociale = document.getElementById('totSociale');
+    var elTotEconomii = document.getElementById('totEconomii');
+    var elTotInvestitii = document.getElementById('totInvestitii');
+    var elVenitNec = document.getElementById('venitNecesat');
+    var elSurplus = document.getElementById('surplus');
+    var elSavings = document.getElementById('savingsRate');
+    var elSplitGrid = document.getElementById('splitGrid');
+    var elSplitTotal = document.getElementById('splitTotal');
+    var elGroupsPlan = document.getElementById('groupsContainerPlan');
+
+    function renderTop() {
+      elCurrency.value = state.currency;
+      elIncomeInput.value = String(state.income);
+      elIncomeSlider.value = String(Math.min(state.income, 50000));
+      elIncomeFormatted.textContent = fmtCurrency(state.currency, state.income);
+    }
+
+    function totalsByGroup() {
+      function sum(g) {
+        return state.lines.filter(function (l) { return g ? l.group === g : true; })
+          .reduce(function (a, b) { return a + (Number(b.amount) || 0); }, 0);
+      }
+      return {
+        baza: sum(GroupKey.BAZA),
+        sociale: sum(GroupKey.SOCIALE),
+        economii: sum(GroupKey.ECONOMII),
+        investitii: sum(GroupKey.INVESTITII)
+      };
+    }
+
+    function renderMetrics() {
+      var t = totalsByGroup();
+      var totalOut = t.baza + t.sociale + t.economii + t.investitii;
+      elTotBaza.textContent = fmtCurrency(state.currency, t.baza);
+      elTotSociale.textContent = fmtCurrency(state.currency, t.sociale);
+      elTotEconomii.textContent = fmtCurrency(state.currency, t.economii);
+      elTotInvestitii.textContent = fmtCurrency(state.currency, t.investitii);
+      elVenitNec.textContent = fmtCurrency(state.currency, totalOut);
+      var sp = state.income - totalOut;
+      elSurplus.textContent = fmtCurrency(state.currency, sp);
+      elSurplus.style.color = sp >= 0 ? '#059669' : '#dc2626';
+      var savings = state.income > 0 ? ((t.economii + t.investitii) / state.income * 100) : 0;
+      elSavings.textContent = savings.toFixed(1) + '%';
+    }
+
+    function renderSplit() {
+      elSplitGrid.innerHTML = '';
+      var keys = [GroupKey.BAZA, GroupKey.SOCIALE, GroupKey.ECONOMII, GroupKey.INVESTITII];
+      var total = 0;
+      keys.forEach(function (k) { if (state.splitActive[k]) total += (state.splitPct[k] || 0); });
+      elSplitTotal.textContent = total.toFixed(1);
+
+      keys.forEach(function (key) {
+        var wrap = document.createElement('div');
+        wrap.className = 'split-card';
+
+        var top = document.createElement('div');
+        top.className = 'split-row';
+
+        var title = document.createElement('div');
+        title.className = 'split-title';
+        var nameMap = {};
+        nameMap[GroupKey.BAZA] = 'Cheltuieli de bază';
+        nameMap[GroupKey.SOCIALE] = 'Cheltuieli sociale';
+        nameMap[GroupKey.ECONOMII] = 'Economii';
+        nameMap[GroupKey.INVESTITII] = 'Investiții';
+        title.textContent = nameMap[key];
+
+        var right = document.createElement('div');
+        right.className = 'split-row';
+        right.style.gap = '6px';
+        var lab = document.createElement('span');
+        lab.className = 'text-xs muted';
+        lab.textContent = 'Activ';
+        var sw = document.createElement('label');
+        sw.className = 'switch';
+        var chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.checked = !!state.splitActive[key];
+        var sldr = document.createElement('span');
+        sldr.className = 'slider';
+        sw.appendChild(chk);
+        sw.appendChild(sldr);
+        right.appendChild(lab);
+        right.appendChild(sw);
+
+        top.appendChild(title);
+        top.appendChild(right);
+
+        var mid = document.createElement('div');
+        mid.className = 'split-row';
+        var input = document.createElement('input');
+        input.className = 'input';
+        input.style.maxWidth = '80px';
+        input.inputMode = 'decimal';
+        input.value = String(state.splitPct[key] || 0);
+        var pct = document.createElement('span');
+        pct.textContent = '%';
+        pct.className = 'text-sm';
+        mid.appendChild(input);
+        mid.appendChild(pct);
+
+        chk.addEventListener('change', function () {
+          state.splitActive[key] = chk.checked;
+          save();
+          renderSplit();
+          renderGroups();
+        });
+        input.addEventListener('input', function () {
+          var v = Number(input.value.toString().replace(',', '.')) || 0;
+          setSplitWithAutoAdjust(key, v);
+        });
+
+        wrap.appendChild(top);
+        wrap.appendChild(mid);
+        elSplitGrid.appendChild(wrap);
+      });
+    }
+
+    function groupBlock(groupKey, opts) {
+      if (opts === void 0) opts = { planMode: false };
+      var planMode = !!opts.planMode;
+
+      var card = document.createElement('div');
+      card.className = 'group-card';
+
+      var titlesMap = {};
+      titlesMap[GroupKey.BAZA] = ['Cheltuieli de bază', 'Cheltuieli esențiale și obligatorii'];
+      titlesMap[GroupKey.SOCIALE] = ['Cheltuieli sociale', 'Lifestyle și divertisment'];
+      titlesMap[GroupKey.ECONOMII] = ['Economii', 'Fond de siguranță și obiective'];
+      titlesMap[GroupKey.INVESTITII] = ['Investiții', 'Creștere pe termen lung'];
+      var titles = titlesMap[groupKey];
+
+      var headRow = document.createElement('div');
+      headRow.className = 'row-between';
+
+      var left = document.createElement('div');
+      var h = document.createElement('h3');
+      h.className = 'group-title';
+      h.textContent = titles[0];
+      var p = document.createElement('p');
+      p.className = 'group-sub';
+      var active = state.splitActive[groupKey];
+      var pctAlloc = state.splitPct[groupKey] || 0;
+      p.textContent = titles[1] + (active ? ' • Alocat: ' + pctAlloc.toFixed(1) + '%' : ' • Alocat: —');
+      left.appendChild(h);
+      left.appendChild(p);
+
+      headRow.appendChild(left);
+
+      if (!planMode) {
+        var rightBtns = document.createElement('div');
+        var btnAdd = document.createElement('button');
+        btnAdd.className = 'btn btn-primary';
+        btnAdd.textContent = 'Adaugă linie';
+        btnAdd.addEventListener('click', function () {
+          var name = prompt('Numele liniei (ex. Cadouri, Fitness etc.)');
+          if (!name) return;
+          var fixed = (groupKey === GroupKey.BAZA || groupKey === GroupKey.ECONOMII);
+          state.lines.push({ id: uid(), name: name, amount: 0, fixed: fixed, group: groupKey });
+          save();
+          rerender();
+        });
+        rightBtns.appendChild(btnAdd);
+        headRow.appendChild(rightBtns);
+      }
+
+      card.appendChild(headRow);
+
+      var header = document.createElement('div');
+      header.className = 'budget-header';
+      header.innerHTML = '<div>Categorie</div><div style="text-align:center;">Sumă lunar</div><div style="text-align:center;">% din venit</div><div style="text-align:center;">Fix</div>' + (planMode ? '<div></div>' : '<div style="text-align:center;">Acțiune</div>');
+
+      var list = document.createElement('div');
+
+      var lines = state.lines.filter(function (l) { return l.group === groupKey; });
+      lines.forEach(function (line) {
+        var row = document.createElement('div');
+        row.className = 'budget-row';
+
+        var cName = document.createElement('input');
+        cName.type = 'text';
+        cName.value = line.name;
+        cName.placeholder = 'Nume categorie';
+        cName.addEventListener('input', function () {
+          line.name = cName.value;
+          save();
+        });
+
+        var cAmt = document.createElement('input');
+        cAmt.type = 'text';
+        cAmt.className = 'amount-input';
+        cAmt.placeholder = '0.00';
+        cAmt.value = String(line.amount);
+        cAmt.addEventListener('focus', function () { cAmt.select(); });
+
+        var pctDiv = document.createElement('div');
+        pctDiv.className = 'percent-cell';
+        function updatePct() {
+          if (state.income > 0) {
+            var pct = (Number(line.amount) || 0) / state.income * 100;
+            pctDiv.textContent = pct.toFixed(1) + '%';
+          } else {
+            pctDiv.textContent = '—';
+          }
+        }
+        updatePct();
+
+        cAmt.addEventListener('input', function () {
+          var v = Number(cAmt.value.toString().replace(',', '.'));
+          line.amount = isFinite(v) ? v : 0;
+          updatePct();
+          renderMetrics();
+          save();
+        });
+
+        var cFixedWrap = document.createElement('div');
+        cFixedWrap.className = 'switch-cell';
+        var labelSw = document.createElement('label');
+        labelSw.className = 'switch';
+        labelSw.title = 'Fix = nu se ajustează automat';
+        var cFixed = document.createElement('input');
+        cFixed.type = 'checkbox';
+        cFixed.checked = !!line.fixed;
+        var slider = document.createElement('span');
+        slider.className = 'slider';
+        labelSw.appendChild(cFixed);
+        labelSw.appendChild(slider);
+        cFixedWrap.appendChild(labelSw);
+        cFixed.addEventListener('change', function () {
+          line.fixed = cFixed.checked;
+          save();
+        });
+
+        row.appendChild(cName);
+        row.appendChild(cAmt);
+        row.appendChild(pctDiv);
+        row.appendChild(cFixedWrap);
+
+        if (!planMode) {
+          var actCell = document.createElement('div');
+          actCell.className = 'action-cell';
+          var btnDel = document.createElement('button');
+          btnDel.className = 'delete-link';
+          btnDel.textContent = 'Șterge';
+          btnDel.addEventListener('click', function () {
+            if (!confirm('Ștergi această linie?')) return;
+            state.lines = state.lines.filter(function (x) { return x.id !== line.id; });
+            save();
+            rerender();
+          });
+          actCell.appendChild(btnDel);
+          row.appendChild(actCell);
+        } else {
+          var dummy = document.createElement('div');
+          row.appendChild(dummy);
+        }
+
+        list.appendChild(row);
+      });
+
+      var totalWrap = document.createElement('div');
+      totalWrap.className = 'group-total';
+      var tl = document.createElement('span');
+      tl.textContent = 'Total:';
+      var tv = document.createElement('span');
+      var tot = state.lines.filter(function (l) { return l.group === groupKey; })
+        .reduce(function (s, l) { return s + (Number(l.amount) || 0); }, 0);
+      tv.textContent = fmtCurrency(state.currency, tot);
+      totalWrap.appendChild(tl);
+      totalWrap.appendChild(tv);
+
+      card.appendChild(header);
+      card.appendChild(list);
+      card.appendChild(totalWrap);
+
+      return { card: card };
+    }
+
+    function renderGroups() {
+      // Plan general
+      elGroupsPlan.innerHTML = '';
+      [GroupKey.BAZA, GroupKey.SOCIALE, GroupKey.ECONOMII, GroupKey.INVESTITII].forEach(function (k) {
+        elGroupsPlan.appendChild(groupBlock(k, { planMode: true }).card);
+      });
+
+      // Taburi detaliu
+      var sections = {};
+      sections[GroupKey.BAZA] = document.getElementById('tab-cheltuieli_baza');
+      sections[GroupKey.SOCIALE] = document.getElementById('tab-cheltuieli_sociale');
+      sections[GroupKey.ECONOMII] = document.getElementById('tab-economii');
+      sections[GroupKey.INVESTITII] = document.getElementById('tab-investitii');
+
+      Object.keys(sections).forEach(function (k) {
+        sections[k].innerHTML = '';
+        sections[k].appendChild(groupBlock(k, { planMode: false }).card);
+      });
+    }
+
+    function rerender() {
+      renderTop();
+      renderSplit();
+      renderGroups();
+      renderMetrics();
+      save();
+    }
+
+    // ======================= LOGIC =======================
+    function autoBalanceToIncome() {
+      if (state.income <= 0) { alert('Introduceți un venit mai întâi!'); return; }
+      var fixedOut = state.lines.filter(function (l) { return l.fixed; })
+        .reduce(function (a, b) { return a + (b.amount || 0); }, 0);
+      var flex = state.lines.filter(function (l) { return !l.fixed; });
+      var flexSum = flex.reduce(function (a, b) { return a + (b.amount || 0); }, 0);
+      var targetFlex = Math.max(state.income - fixedOut, 0);
+      if (!flex.length) { alert('Nu există linii flexibile de ajustat!'); return; }
+      if (flexSum === 0) { alert('Liniile flexibile au suma 0. Adăugați sume înainte de a balansa.'); return; }
+      if (targetFlex < 0) { alert('Venitul este prea mic pentru a acoperi cheltuielile fixe!'); return; }
+      var k = targetFlex / flexSum;
+      flex.forEach(function (f) { f.amount = Number(((f.amount || 0) * k).toFixed(2)); });
+      rerender();
+    }
+
+    function setSplitWithAutoAdjust(key, value) {
+      value = Math.max(0, Math.min(100, value));
+      var active = Object.keys(state.splitActive).filter(function (k) { return state.splitActive[k]; });
+      if (active.indexOf(key) === -1) { state.splitPct[key] = value; rerender(); return; }
+      var others = active.filter(function (k) { return k !== key; });
+      if (!others.length) { state.splitPct[key] = 100; rerender(); return; }
+      var newPct = Object.assign({}, state.splitPct);
+      newPct[key] = value;
+      var lastActive = others[others.length - 1];
+      var fixedOthers = others.filter(function (k) { return k !== lastActive; })
+        .reduce(function (a, k) { return a + (newPct[k] || 0); }, 0);
+      newPct[lastActive] = Math.max(0, 100 - value - fixedOthers);
+      state.splitPct = newPct;
+      rerender();
+    }
+
+    function applySplitToGroups() {
+      if (state.income <= 0) { alert('Introduceți un venit mai întâi!'); return; }
+      var active = Object.keys(state.splitActive).filter(function (k) { return state.splitActive[k]; });
+      if (!active.length) { alert('Nicio casetă de split activă.'); return; }
+      var budget = {};
+      active.forEach(function (k) { budget[k] = (state.income * (state.splitPct[k] || 0)) / 100; });
+      var keys = [GroupKey.BAZA, GroupKey.SOCIALE, GroupKey.ECONOMII, GroupKey.INVESTITII];
+      keys.forEach(function (g) {
+        if (!(g in budget)) return;
+        var linesIn = state.lines.filter(function (l) { return l.group === g; });
+        var fixedSum = linesIn.filter(function (l) { return l.fixed; })
+          .reduce(function (a, b) { return a + (b.amount || 0); }, 0);
+        var target = budget[g] || 0;
+        if (fixedSum > target) {
+          alert('Atenție: cheltuielile/ economiile FIXE din "' + g + '" (' + fixedSum.toFixed(2) + ') depășesc bugetul alocat (' + target.toFixed(2) + ').');
+        }
+        var flex = linesIn.filter(function (l) { return !l.fixed; });
+        var targetFlex = Math.max(target - fixedSum, 0);
+        if (!flex.length) return;
+        var flexSum = flex.reduce(function (a, b) { return a + (b.amount || 0); }, 0);
+        if (flexSum === 0) {
+          var eq = targetFlex / flex.length;
+          flex.forEach(function (f) { f.amount = Number(eq.toFixed(2)); });
+        } else {
+          var k = targetFlex / flexSum;
+          flex.forEach(function (f) { f.amount = Number(((f.amount || 0) * k).toFixed(2)); });
+        }
+      });
+      rerender();
+    }
+
+    function exportCSV() {
+      var rows = state.lines.map(function (l) {
+        var gName = 'Investiții';
+        if (l.group === GroupKey.BAZA) gName = 'Cheltuieli de bază';
+        else if (l.group === GroupKey.SOCIALE) gName = 'Cheltuieli sociale';
+        else if (l.group === GroupKey.ECONOMII) gName = 'Economii';
+        return {
+          'Grup': gName,
+          'Nume': l.name,
+          'Suma': l.amount,
+          'Fix (nu se ajustează)': l.fixed ? 'Da' : 'Nu',
+          '% din venit': state.income > 0 ? ((l.amount / state.income) * 100).toFixed(1) : ''
+        };
+      });
+      saveFile('buget_personal.csv', toCSV(rows), 'text/csv;charset=utf-8');
+    }
+
+    function exportJSON() {
+      saveFile('buget_personal.json', JSON.stringify(state, null, 2), 'application/json');
+    }
+
+    function importJSON(file) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var data = JSON.parse(String(reader.result));
+          state.currency = data.currency || RON;
+          state.income = Number(data.income || 0);
+          state.lines = Array.isArray(data.lines) ? data.lines.map(function (l) {
+            return {
+              id: l.id || uid(),
+              name: String(l.name || ''),
+              amount: Number(l.amount || 0),
+              fixed: !!l.fixed,
+              group: l.group
+            };
+          }) : [];
+          if (!state.lines.length) initDefaultLines();
+          state.splitActive = Object.assign({}, defaultSplitActive, data.splitActive || {});
+          state.splitPct = Object.assign({}, defaultSplitPct, data.splitPct || {});
+          alert('Import reușit.');
+          rerender();
+        } catch (e) {
+          alert('Fișier invalid.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetAll() {
+      if (!confirm('Sigur doriți să resetați toate valorile?')) return;
+      state.currency = RON;
+      state.income = 0;
+      state.splitActive = Object.assign({}, defaultSplitActive);
+      state.splitPct = Object.assign({}, defaultSplitPct);
+      initDefaultLines();
+      rerender();
+    }
+
+    // ======================= EVENTS =======================
+    document.getElementById('btnAutobalance').addEventListener('click', autoBalanceToIncome);
+    document.getElementById('btnApplySplit').addEventListener('click', applySplitToGroups);
+    document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+    document.getElementById('btnExportJSON').addEventListener('click', exportJSON);
+    document.getElementById('btnReset').addEventListener('click', resetAll);
+    document.getElementById('import-json').addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (f) { importJSON(f); e.target.value = ''; }
     });
-  });
 
-  // ======================= INIT =======================
-  load();
-  rerender();
+    elCurrency.addEventListener('change', function () {
+      state.currency = elCurrency.value;
+      rerender();
+    });
+    elIncomeInput.addEventListener('focus', function () { elIncomeInput.select(); });
+    elIncomeInput.addEventListener('input', function () {
+      var v = Number(elIncomeInput.value.toString().replace(',', '.'));
+      state.income = isFinite(v) && v >= 0 ? v : 0;
+      renderMetrics();
+      save();
+    });
+    elIncomeSlider.addEventListener('input', function () {
+      var v = Number(elIncomeSlider.value);
+      state.income = v;
+      elIncomeInput.value = String(v);
+      rerender();
+    });
 
-  // ======================= DEV TESTS (console.assert) =======================
-  try {
-    const sample = [ { Nume: 'Test "A"', Suma: 10 }, { Nume: 'B', Suma: 20 } ];
-    const csv = toCSV(sample);
-    console.assert(csv.includes('\n'), 'CSV trebuie să conțină newline');
-    console.assert(csv.split('\n').length >= 2, 'CSV are cel puțin două linii');
-    console.assert(csv.includes('"Test ""A"""'), 'CSV trebuie să escapeze ghilimelele duble');
+    // Tabs
+    Array.prototype.forEach.call(document.querySelectorAll('.chip-tab'), function (btn) {
+      btn.addEventListener('click', function () {
+        Array.prototype.forEach.call(document.querySelectorAll('.chip-tab'), function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        var t = btn.getAttribute('data-tab');
+        Array.prototype.forEach.call(document.querySelectorAll('.tab-section'), function (sec) {
+          sec.style.display = 'none';
+        });
+        document.getElementById('tab-' + t).style.display = '';
+      });
+    });
 
-    const before = { ...state.splitPct };
-    setSplitWithAutoAdjust(GroupKey.ECONOMII, 30);
-    const actives = Object.keys(state.splitActive).filter(k=>state.splitActive[k]);
-    const s = actives.reduce((a,k)=>a+(state.splitPct[k]||0),0);
-    console.assert(Math.abs(s-100) < 0.001, 'Split-urile active trebuie să însumeze 100%');
-    state.splitPct = before; save();
+    // ======================= INIT =======================
+    load();
+    rerender();
 
-    const testIncome = 1000; const percent = 10; const amount = 100;
-    console.assert(Math.abs((testIncome*percent)/100 - amount) < 0.001, 'Conversie % -> sumă corectă');
-  } catch(e) { console.warn('DEV TESTS failed', e); }
+    // ======================= DEV TESTS =======================
+    try {
+      var sample = [{ Nume: 'Test "A"', Suma: 10 }, { Nume: 'B', Suma: 20 }];
+      var csv = toCSV(sample);
+      console.assert(csv.indexOf('\n') !== -1, 'CSV trebuie să conțină newline');
+      console.assert(csv.split('\n').length >= 2, 'CSV are cel puțin două linii');
+      console.assert(csv.indexOf('"Test ""A"""') !== -1, 'CSV trebuie să escapeze ghilimelele duble');
+
+      var before = Object.assign({}, state.splitPct);
+      setSplitWithAutoAdjust(GroupKey.ECONOMII, 30);
+      var actives = Object.keys(state.splitActive).filter(function (k) { return state.splitActive[k]; });
+      var s = actives.reduce(function (a, k) { return a + (state.splitPct[k] || 0); }, 0);
+      console.assert(Math.abs(s - 100) < 0.001, 'Split-urile active trebuie să însumeze 100%');
+      state.splitPct = before;
+      save();
+
+      var testIncome = 1000;
+      var percent = 10;
+      var amount = 100;
+      console.assert(Math.abs((testIncome * percent) / 100 - amount) < 0.001, 'Conversie % -> sumă corectă');
+    } catch (e) {
+      console.warn('DEV TESTS failed', e);
+    }
   </script>
+
+  <!--
+  ======================= PWA FILES (pentru GitHub Pages) =======================
+  1) manifest.webmanifest
+  {
+    "name": "Buget personal – planificator lunar",
+    "short_name": "Buget",
+    "start_url": "/calculator-buget/",
+    "scope": "/calculator-buget/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#0f172a",
+    "icons": [
+      { "src": "/calculator-buget/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+      { "src": "/calculator-buget/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    ]
+  }
+
+  2) sw.js rămâne ca înainte, important este ca index.html, manifest.webmanifest și icons/ să fie în rădăcina repo-ului.
+  -->
 </body>
 </html>
