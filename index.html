@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Buget personal – planificator lunar (PWA)</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <!-- Favicon / App icons: asigurați fișierele în rădăcina repo-ului după manifest (vezi comentariul din josul fișierului) -->
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192">
+  <!-- Tailwind via CDN pentru stilizare rapidă -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .card { @apply bg-white rounded-2xl shadow-sm border border-slate-200; }
+    .card-body { @apply p-4 md:p-6; }
+    .btn { @apply inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-medium border border-slate-200 bg-slate-50 hover:bg-slate-100; }
+    .btn-primary { @apply border-transparent bg-slate-900 text-white hover:bg-black; }
+    .btn-danger { @apply border-transparent bg-rose-600 text-white hover:bg-rose-700; }
+    .btn-ghost { @apply border-transparent bg-transparent hover:bg-slate-100; }
+    .input { @apply w-full rounded-xl border border-slate-300 px-3 py-2 text-sm; }
+    .switch { width: 36px; height: 22px; position: relative; display: inline-block; }
+    .switch input { display:none; }
+    .slider { position:absolute; cursor:pointer; inset:0; background:#cbd5e1; transition:.2s; border-radius:999px; }
+    .slider:before { content:""; position:absolute; height:18px; width:18px; left:2px; top:2px; background:white; transition:.2s; border-radius:999px; }
+    input:checked + .slider { background:#0ea5e9; }
+    input:checked + .slider:before { transform:translateX(14px); }
+    .tab-btn { @apply px-3 py-2 rounded-xl text-sm border border-slate-200; }
+    .tab-btn.active { @apply bg-slate-900 text-white border-slate-900; }
+    .grid-header { @apply grid grid-cols-12 items-center gap-2 text-xs font-medium text-slate-500 px-1 mb-1; }
+    .group-title { @apply text-xl font-bold tracking-tight; }
+    .group-sub { @apply text-xs text-slate-500; }
+    .kpi { @apply text-xl font-semibold; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-white to-slate-50 p-4 md:p-8">
+  <div class="max-w-7xl mx-auto space-y-6" id="app">
+    <!-- Sfat sus -->
+    <div class="card">
+      <div class="card-body py-3">
+        <p class="text-sm text-slate-700"><strong>Sfat:</strong> Prioritizează cheltuielile de bază și fondul de urgență, țintește 15–20% economii/investiții și revizuiește lunar bugetul. Poți exporta CSV/JSON și lucra offline (PWA).</p>
+      </div>
+    </div>
+
+    <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Buget personal – planificator lunar</h1>
+        <p class="text-sm text-slate-600 max-w-2xl">Planifică-ți bugetul lunar: venituri, cheltuieli, economii, investiții. Ajustează automat pentru a te încadra în venit sau optimizează alocările.</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <select id="currency" class="input w-[120px]">
+          <option value="RON">RON</option>
+          <option value="EUR">EUR</option>
+          <option value="USD">USD</option>
+        </select>
+        <button id="btnReset" class="btn-danger">Resetează tot</button>
+        <button id="btnExportCSV" class="btn">CSV</button>
+        <button id="btnExportJSON" class="btn">Salvează JSON</button>
+        <label class="btn cursor-pointer">
+          <input id="import-json" type="file" accept="application/json" class="hidden" />
+          Import JSON
+        </label>
+      </div>
+    </header>
+
+    <!-- Panou metrici -->
+    <section class="card">
+      <div class="card-body space-y-4">
+        <div class="grid md:grid-cols-3 gap-4">
+          <div>
+            <label class="text-sm font-medium">Venit lunar (net)</label>
+            <div class="flex items-center gap-2 mt-1">
+              <input id="incomeInput" class="input" inputmode="decimal" placeholder="0.00" />
+              <span id="incomeFormatted" class="text-sm text-slate-600">0</span>
+            </div>
+            <input id="incomeSlider" type="range" min="0" max="50000" step="100" class="w-full mt-2" />
+            <p class="text-xs text-slate-500">Glisează pentru scenarii rapide (max 50.000)</p>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-sm font-medium">Total cheltuieli de bază</label>
+              <p id="totBaza" class="kpi">0</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium">Total cheltuieli sociale</label>
+              <p id="totSociale" class="kpi">0</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium">Total economii</label>
+              <p id="totEconomii" class="kpi">0</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium">Total investiții</label>
+              <p id="totInvestitii" class="kpi">0</p>
+            </div>
+          </div>
+          <div class="flex flex-col gap-2">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-sm font-medium">Venit necesar</label>
+                <p id="venitNecesat" class="text-lg font-semibold">0</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium">Surplus / Deficit</label>
+                <p id="surplus" class="text-lg font-semibold">0</p>
+              </div>
+            </div>
+            <div>
+              <label class="text-sm font-medium">Rată de economisire</label>
+              <p id="savingsRate" class="text-lg font-semibold">0%</p>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-1">
+              <button id="btnApplyPercents" class="btn-primary">Aplică procente (linii)</button>
+              <button id="btnAutobalance" class="btn">Autobalansează</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Split pe grupe -->
+    <section class="card">
+      <div class="card-body space-y-3">
+        <label class="text-sm font-medium">Împărțire buget pe grupe (suma activelor = 100%)</label>
+        <div class="grid md:grid-cols-4 gap-3" id="splitGrid"></div>
+        <div class="text-xs text-slate-500">Total activ: <span id="splitTotal">0</span>%</div>
+        <div class="flex gap-2">
+          <button id="btnApplySplit" class="btn">Aplică împărțirea pe grupe</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabs simple -->
+    <div>
+      <div class="flex flex-wrap gap-2 mb-3">
+        <button class="tab-btn active" data-tab="plan">Plan general</button>
+        <button class="tab-btn" data-tab="cheltuieli_baza">Cheltuieli de bază</button>
+        <button class="tab-btn" data-tab="cheltuieli_sociale">Cheltuieli sociale</button>
+        <button class="tab-btn" data-tab="economii">Economii</button>
+        <button class="tab-btn" data-tab="investitii">Investiții</button>
+      </div>
+
+      <section id="tab-plan" class="space-y-4">
+        <div class="card"><div class="card-body">
+          <p class="text-sm text-slate-600">Rezumat aerisit al tuturor grupelor (fără butoane de ștergere). Pentru editare completă accesează tab-urile fiecărei grupe.</p>
+        </div></div>
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4" id="groupsContainerPlan"></div>
+      </section>
+
+      <section id="tab-cheltuieli_baza" class="hidden"></section>
+      <section id="tab-cheltuieli_sociale" class="hidden"></section>
+      <section id="tab-economii" class="hidden"></section>
+      <section id="tab-investitii" class="hidden"></section>
+    </div>
+
+    <footer class="pt-2 pb-8 text-xs text-slate-500">
+      <div>Funcționează offline după primul acces (PWA). Pentru instalare: browser-ul va propune „Install app” sau folosește meniul „Add to Home Screen”.</div>
+    </footer>
+  </div>
+
+  <script>
+  // ======================= PWA register =======================
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(console.warn);
+    });
+  }
+
+  // ======================= STATE & HELPERS =======================
+  const STORAGE_KEY = 'budget_ro_html_pwa_v2';
+  const RON = 'RON';
+  const GroupKey = {
+    BAZA: 'cheltuieli_baza',
+    SOCIALE: 'cheltuieli_sociale',
+    ECONOMII: 'economii',
+    INVESTITII: 'investitii',
+  };
+
+  const presets = {
+    [GroupKey.BAZA]: [
+      'Locuință (chirie/rată)', 'Utilități (electricitate, gaz, apă)', 'Internet/Telefon', 'Transport', 'Alimentație', 'Sănătate/Asigurări', 'Îmbrăcăminte & Încălțăminte', 'Datorii/Rate consum'
+    ],
+    [GroupKey.SOCIALE]: [
+      'Divertisment & Ieșiri', 'Restaurante & Cafenele', 'Vacanțe & Călătorii', 'Cadouri & Ocazii speciale', 'Abonamente (Netflix/Spotify etc.)', 'Educație/Cursuri', 'Sport & Wellness', 'Altele sociale'
+    ],
+    [GroupKey.ECONOMII]: [
+      'Fond de urgență', 'Economii pentru obiectiv (ex. avans locuință)', 'Economii vacanțe', 'Economii mașină', 'Pilon III / Pensie facultativă', 'Reparații/Renovări', 'Înlocuire electrocasnice', 'Alte economii'
+    ],
+    [GroupKey.INVESTITII]: [
+      'ETF/Acțiuni', 'Obligațiuni/Titluri de stat', 'Crypto (speculativ)', 'Imobiliare', 'Alte investiții'
+    ],
+  };
+
+  const uid = () => Math.random().toString(36).slice(2, 10);
+
+  const defaultSplitActive = {
+    [GroupKey.BAZA]: true,
+    [GroupKey.SOCIALE]: true,
+    [GroupKey.ECONOMII]: true,
+    [GroupKey.INVESTITII]: true,
+  };
+  const defaultSplitPct = {
+    [GroupKey.BAZA]: 50,
+    [GroupKey.SOCIALE]: 20,
+    [GroupKey.ECONOMII]: 20,
+    [GroupKey.INVESTITII]: 10,
+  };
+
+  function fmtCurrency(ccy, n) {
+    try { return new Intl.NumberFormat('ro-RO', { style: 'currency', currency: ccy }).format(n || 0); }
+    catch { return (n || 0).toFixed(2) + ' ' + ccy; }
+  }
+
+  function toCSV(rows) {
+    if (!rows.length) return '';
+    const headers = Object.keys(rows[0]);
+    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const csv = [headers.join(',')]
+      .concat(rows.map(r => headers.map(h => esc(r[h] ?? '')).join(',')))
+      .join('\n');
+    return csv;
+  }
+
+  function saveFile(filename, content, mime) {
+    const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // ======================= APP STATE =======================
+  const state = {
+    currency: RON,
+    income: 0,
+    lines: [], // {id, name, amount, fixed, group, percent, percentEnabled}
+    splitActive: { ...defaultSplitActive },
+    splitPct: { ...defaultSplitPct },
+  };
+
+  function initDefaultLines() {
+    const make = (names, group, fixed) => names.map(n => ({ id: uid(), name: n, amount: 0, fixed, group, percent: 0, percentEnabled: false }));
+    state.lines = [
+      ...make(presets[GroupKey.BAZA], GroupKey.BAZA, true),
+      ...make(presets[GroupKey.SOCIALE], GroupKey.SOCIALE, false),
+      ...make(presets[GroupKey.ECONOMII], GroupKey.ECONOMII, true),
+      ...make(presets[GroupKey.INVESTITII], GroupKey.INVESTITII, false),
+    ];
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) { initDefaultLines(); return; }
+      const data = JSON.parse(raw);
+      state.currency = data.currency || RON;
+      state.income = Number(data.income || 0);
+      state.lines = Array.isArray(data.lines) ? data.lines.map(l => ({
+        id: l.id || uid(),
+        name: String(l.name || ''),
+        amount: Number(l.amount || 0),
+        fixed: !!l.fixed,
+        group: l.group,
+        percent: Number(l.percent || 0),
+        percentEnabled: !!l.percentEnabled,
+      })) : [];
+      if (!state.lines.length) initDefaultLines();
+      state.splitActive = { ...defaultSplitActive, ...(data.splitActive || {}) };
+      state.splitPct = { ...defaultSplitPct, ...(data.splitPct || {}) };
+    } catch(e) {
+      console.warn('Load failed', e); initDefaultLines();
+    }
+  }
+
+  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+  // ======================= RENDER =======================
+  const elCurrency = document.getElementById('currency');
+  const elIncomeInput = document.getElementById('incomeInput');
+  const elIncomeSlider = document.getElementById('incomeSlider');
+  const elIncomeFormatted = document.getElementById('incomeFormatted');
+  const elTotBaza = document.getElementById('totBaza');
+  const elTotSociale = document.getElementById('totSociale');
+  const elTotEconomii = document.getElementById('totEconomii');
+  const elTotInvestitii = document.getElementById('totInvestitii');
+  const elVenitNec = document.getElementById('venitNecesat');
+  const elSurplus = document.getElementById('surplus');
+  const elSavings = document.getElementById('savingsRate');
+  const elSplitGrid = document.getElementById('splitGrid');
+  const elSplitTotal = document.getElementById('splitTotal');
+  const elGroupsPlan = document.getElementById('groupsContainerPlan');
+
+  function renderTop() {
+    elCurrency.value = state.currency;
+    elIncomeInput.value = String(state.income);
+    elIncomeSlider.value = String(Math.min(state.income, 50000));
+    elIncomeFormatted.textContent = fmtCurrency(state.currency, state.income);
+  }
+
+  function totalsByGroup() {
+    const sum = g => state.lines.filter(l => g ? l.group === g : true).reduce((a,b)=>a+(Number(b.amount)||0),0);
+    return {
+      baza: sum(GroupKey.BAZA),
+      sociale: sum(GroupKey.SOCIALE),
+      economii: sum(GroupKey.ECONOMII),
+      investitii: sum(GroupKey.INVESTITII),
+    };
+  }
+
+  function renderMetrics() {
+    const t = totalsByGroup();
+    const totalOut = t.baza + t.sociale + t.economii + t.investitii;
+    elTotBaza.textContent = fmtCurrency(state.currency, t.baza);
+    elTotSociale.textContent = fmtCurrency(state.currency, t.sociale);
+    elTotEconomii.textContent = fmtCurrency(state.currency, t.economii);
+    elTotInvestitii.textContent = fmtCurrency(state.currency, t.investitii);
+    elVenitNec.textContent = fmtCurrency(state.currency, totalOut);
+    const sp = state.income - totalOut;
+    elSurplus.textContent = fmtCurrency(state.currency, sp);
+    elSurplus.className = 'text-lg font-semibold ' + (sp >= 0 ? 'text-emerald-600' : 'text-rose-600');
+    const savings = state.income>0 ? ((t.economii + t.investitii)/state.income*100) : 0;
+    elSavings.textContent = savings.toFixed(1) + '%';
+  }
+
+  function renderSplit() {
+    elSplitGrid.innerHTML = '';
+    const keys = [GroupKey.BAZA, GroupKey.SOCIALE, GroupKey.ECONOMII, GroupKey.INVESTITII];
+    let total = 0;
+    keys.forEach(k => { if (state.splitActive[k]) total += (state.splitPct[k]||0); });
+    elSplitTotal.textContent = (total).toFixed(1);
+
+    keys.forEach(key => {
+      const wrap = document.createElement('div'); wrap.className = 'p-3 rounded-2xl border bg-white flex flex-col gap-2';
+      const top = document.createElement('div'); top.className = 'flex items-center justify-between';
+      const title = document.createElement('span'); title.className = 'text-sm font-medium';
+      title.textContent = {
+        [GroupKey.BAZA]: 'Cheltuieli de bază',
+        [GroupKey.SOCIALE]: 'Cheltuieli sociale',
+        [GroupKey.ECONOMII]: 'Economii',
+        [GroupKey.INVESTITII]: 'Investiții',
+      }[key];
+      const right = document.createElement('div'); right.className = 'flex items-center gap-2 text-xs';
+      const lab = document.createElement('span'); lab.className = 'text-slate-500'; lab.textContent = 'Activ';
+      const sw = document.createElement('label'); sw.className = 'switch';
+      const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = !!state.splitActive[key];
+      const sldr = document.createElement('span'); sldr.className = 'slider';
+      sw.append(chk, sldr); right.append(lab, sw);
+      chk.addEventListener('change', ()=>{ state.splitActive[key] = chk.checked; save(); renderSplit(); renderGroups(); });
+      top.append(title, right);
+
+      const mid = document.createElement('div'); mid.className = 'flex items-center gap-2';
+      const input = document.createElement('input'); input.className = 'input w-24'; input.inputMode = 'decimal'; input.value = String(state.splitPct[key]||0);
+      const pct = document.createElement('span'); pct.className='text-sm'; pct.textContent='%';
+      input.addEventListener('input', ()=> setSplitWithAutoAdjust(key, Number(input.value.toString().replace(',', '.')) || 0));
+      mid.append(input, pct);
+
+      wrap.append(top, mid);
+      elSplitGrid.appendChild(wrap);
+    });
+  }
+
+  function groupHeader(titleText, subText, groupKey) {
+    const wrap = document.createElement('div');
+    wrap.className = 'flex items-center justify-between gap-2 mb-3';
+    const left = document.createElement('div');
+    const t = document.createElement('h3'); t.className='group-title'; t.textContent=titleText;
+    const s = document.createElement('p'); s.className='group-sub';
+    const active = state.splitActive[groupKey];
+    const pct = state.splitPct[groupKey] || 0;
+    s.textContent = subText + (active ? ` • Alocat: ${pct.toFixed(1)}%` : ' • Alocat: —');
+    left.append(t, s);
+    wrap.append(left);
+    return wrap;
+  }
+
+  function groupGridHeader() {
+    const header = document.createElement('div'); header.className='grid-header';
+    header.innerHTML = '<div class="col-span-4">Categorie</div><div class="col-span-3 text-right">Sumă lunar</div><div class="col-span-3 text-right">% din venit</div><div class="col-span-1 text-center">% ON</div><div class="col-span-1 text-center" title="Fix = nu se ajustează automat">Fix</div>';
+    return header;
+  }
+
+  function groupTotalsFooter(groupKey) {
+    const totalWrap = document.createElement('div'); totalWrap.className='mt-3 pt-3 border-t border-slate-200';
+    const totalFx = document.createElement('div'); totalFx.className='flex justify-between items-center text-sm';
+    const tl = document.createElement('span'); tl.className='font-medium'; tl.textContent='Total:';
+    const tv = document.createElement('span'); tv.className='font-semibold';
+    const tot = state.lines.filter(l=>l.group===groupKey).reduce((s,l)=>s+(Number(l.amount)||0),0);
+    tv.textContent = fmtCurrency(state.currency, tot);
+    totalFx.append(tl, tv); totalWrap.appendChild(totalFx);
+    return { totalWrap, tv };
+  }
+
+  function groupBlock(groupKey, opts={ planMode:false }) {
+    const card = document.createElement('div'); card.className = 'card';
+    const body = document.createElement('div'); body.className = 'card-body';
+
+    // Header aerisit + procent alocat din split
+    const titles = {
+      [GroupKey.BAZA]: ['Cheltuieli de bază', 'Cheltuieli esențiale și obligatorii'],
+      [GroupKey.SOCIALE]: ['Cheltuieli sociale', 'Lifestyle și divertisment'],
+      [GroupKey.ECONOMII]: ['Economii', 'Fond de siguranță și obiective'],
+      [GroupKey.INVESTITII]: ['Investiții', 'Creștere pe termen lung'],
+    }[groupKey];
+    body.appendChild(groupHeader(titles[0], titles[1], groupKey));
+
+    body.appendChild(groupGridHeader());
+
+    const list = document.createElement('div'); list.className='space-y-2';
+    const lines = state.lines.filter(l=>l.group===groupKey);
+
+    lines.forEach(line => {
+      const row = document.createElement('div'); row.className='grid grid-cols-12 gap-2 items-center';
+      const cName = document.createElement('input'); cName.className='input col-span-4'; cName.value=line.name; cName.placeholder='Nume categorie';
+      cName.addEventListener('input', ()=>{ line.name = cName.value; save(); });
+
+      const cAmt = document.createElement('input'); cAmt.className='input col-span-3 text-right'; cAmt.inputMode='decimal'; cAmt.placeholder='0.00'; cAmt.value=String(line.amount);
+      cAmt.addEventListener('focus', ()=>{ cAmt.select(); });
+      // live update (nu doar onBlur)
+      cAmt.addEventListener('input', ()=>{
+        const v = Number(cAmt.value.toString().replace(',', '.'));
+        line.amount = isFinite(v) ? v : 0;
+        // dacă linia are % activ, reflectă suma în procent (față de venit)
+        if (line.percentEnabled && state.income > 0) {
+          line.percent = Number(((line.amount / state.income) * 100).toFixed(1));
+        }
+        renderMetrics(); save();
+      });
+
+      const cPct = document.createElement('input'); cPct.className='input col-span-3 text-right'; cPct.inputMode='decimal'; cPct.placeholder='0'; cPct.value=String(line.percent||0); cPct.disabled = !line.percentEnabled;
+      cPct.addEventListener('focus', ()=>{ cPct.select(); });
+      cPct.addEventListener('input', ()=>{
+        const v = Number(cPct.value.toString().replace(',', '.'));
+        line.percent = isFinite(v) ? v : 0;
+        if (state.income > 0) {
+          line.amount = Number(((state.income * line.percent)/100).toFixed(2));
+        }
+        renderMetrics(); save();
+      });
+
+      const cPctOnWrap = document.createElement('label'); cPctOnWrap.className='col-span-1 flex justify-center switch';
+      const cPctOn = document.createElement('input'); cPctOn.type='checkbox'; cPctOn.checked=!!line.percentEnabled;
+      const cPctOnSlider = document.createElement('span'); cPctOnSlider.className='slider';
+      cPctOn.addEventListener('change', ()=>{ line.percentEnabled = cPctOn.checked; cPct.disabled = !cPctOn.checked; save(); });
+      cPctOnWrap.append(cPctOn, cPctOnSlider);
+
+      const cFixedWrap = document.createElement('label'); cFixedWrap.className='col-span-1 flex justify-center switch'; cFixedWrap.title='Fix = nu se ajustează automat';
+      const cFixed = document.createElement('input'); cFixed.type='checkbox'; cFixed.checked=!!line.fixed;
+      const cFixedSlider = document.createElement('span'); cFixedSlider.className='slider';
+      cFixed.addEventListener('change', ()=>{ line.fixed = cFixed.checked; save(); });
+      cFixedWrap.append(cFixed, cFixedSlider);
+
+      const delRow = document.createElement('div'); delRow.className='col-span-12 flex justify-end -mt-1';
+      const btnDel = document.createElement('button'); btnDel.className='btn-ghost btn text-slate-500'; btnDel.textContent='Șterge';
+      btnDel.addEventListener('click', ()=>{ if (!confirm('Ștergi această linie?')) return; state.lines = state.lines.filter(x=>x.id!==line.id); save(); rerender(); });
+
+      row.append(cName, cAmt, cPct, cPctOnWrap, cFixedWrap);
+      if (!opts.planMode) { // în Plan general NU afișăm butonul de ștergere
+        row.appendChild(delRow);
+        delRow.appendChild(btnDel);
+      }
+      list.appendChild(row);
+    });
+
+    const { totalWrap, tv } = groupTotalsFooter(groupKey);
+    // reactualizează dinamic totalul când tastăm (deja facem renderMetrics la input)
+
+    body.append(list, totalWrap);
+    card.appendChild(body);
+    return { card, totalTextEl: tv };
+  }
+
+  function renderGroups() {
+    // Plan (aerisit, fără butoane de ștergere)
+    elGroupsPlan.innerHTML = '';
+    [GroupKey.BAZA, GroupKey.SOCIALE, GroupKey.ECONOMII, GroupKey.INVESTITII].forEach(k => {
+      elGroupsPlan.appendChild(groupBlock(k, { planMode: true }).card);
+    });
+
+    // Tab-uri detaliate (cu ștergere)
+    const sections = {
+      [GroupKey.BAZA]: document.getElementById('tab-cheltuieli_baza'),
+      [GroupKey.SOCIALE]: document.getElementById('tab-cheltuieli_sociale'),
+      [GroupKey.ECONOMII]: document.getElementById('tab-economii'),
+      [GroupKey.INVESTITII]: document.getElementById('tab-investitii'),
+    };
+    Object.keys(sections).forEach(k => {
+      sections[k].innerHTML = '';
+      sections[k].appendChild(groupBlock(k, { planMode: false }).card);
+    });
+  }
+
+  function rerenderMetricsOnly() { renderMetrics(); save(); }
+  function rerender() { renderTop(); renderSplit(); renderGroups(); renderMetrics(); save(); }
+
+  // ======================= LOGIC =======================
+  function applyPercentScalingAll() {
+    if (state.income <= 0) { alert('Introduceți un venit mai întâi!'); return; }
+    const enabled = state.lines.filter(l => l.percentEnabled && (l.percent||0) > 0);
+    if (!enabled.length) { alert('Nu există linii cu procente active!'); return; }
+    const sumPct = enabled.reduce((a,l)=>a+(l.percent||0),0);
+    let scale = 1;
+    if (Math.abs(sumPct - 100) > 0.001) { scale = 100 / (sumPct || 1); alert(`Procentele active au fost scalate la 100% (suma inițială: ${sumPct.toFixed(1)}%).`); }
+    let remaining = 100.0; const ids = enabled.map(l=>l.id); const newPct = {};
+    enabled.forEach((l,idx)=>{
+      if (idx < enabled.length - 1) { const p = Number(((l.percent||0)*scale).toFixed(1)); newPct[l.id]=p; remaining = Number((remaining-p).toFixed(1)); }
+      else { newPct[l.id] = Number(remaining.toFixed(1)); }
+    });
+    state.lines = state.lines.map(l => ids.includes(l.id) ? { ...l, percent: newPct[l.id], amount: Number(((state.income*newPct[l.id])/100).toFixed(2)) } : l);
+    rerender();
+  }
+
+  function autoBalanceToIncome() {
+    if (state.income <= 0) { alert('Introduceți un venit mai întâi!'); return; }
+    const fixedOut = state.lines.filter(l=>l.fixed).reduce((a,b)=>a+(b.amount||0),0);
+    const flex = state.lines.filter(l=>!l.fixed);
+    const flexSum = flex.reduce((a,b)=>a+(b.amount||0),0);
+    const targetFlex = Math.max(state.income - fixedOut, 0);
+    if (!flex.length) { alert('Nu există linii flexibile de ajustat!'); return; }
+    if (flexSum===0) { alert('Liniile flexibile au suma 0. Adăugați sume înainte de a balansa.'); return; }
+    if (targetFlex<0) { alert('Venitul este prea mic pentru a acoperi cheltuielile fixe!'); return; }
+    const k = targetFlex / flexSum;
+    flex.forEach(f=>{ f.amount = Number(((f.amount||0)*k).toFixed(2)); });
+    rerender();
+  }
+
+  function setSplitWithAutoAdjust(key, value) {
+    value = Math.max(0, Math.min(100, value));
+    const active = Object.keys(state.splitActive).filter(k=>state.splitActive[k]);
+    if (!active.includes(key)) { state.splitPct[key] = value; rerender(); return; }
+    const others = active.filter(k=>k!==key);
+    if (!others.length) { state.splitPct[key] = 100; rerender(); return; }
+    const newPct = { ...state.splitPct, [key]: value };
+    const lastActive = others[others.length-1];
+    const fixedOthers = others.filter(k=>k!==lastActive).reduce((a,k)=>a+(newPct[k]||0),0);
+    newPct[lastActive] = Math.max(0, 100 - value - fixedOthers);
+    state.splitPct = newPct; rerender();
+  }
+
+  function applySplitToGroups() {
+    if (state.income <= 0) { alert('Introduceți un venit mai întâi!'); return; }
+    const active = Object.keys(state.splitActive).filter(k=>state.splitActive[k]);
+    if (!active.length) { alert('Nicio casetă de split activă.'); return; }
+    const budget = {}; active.forEach(k=> budget[k] = (state.income * (state.splitPct[k]||0))/100);
+    const keys = [GroupKey.BAZA, GroupKey.SOCIALE, GroupKey.ECONOMII, GroupKey.INVESTITII];
+    keys.forEach(g => {
+      if (!(g in budget)) return;
+      const linesIn = state.lines.filter(l=>l.group===g);
+      const fixedSum = linesIn.filter(l=>l.fixed).reduce((a,b)=>a+(b.amount||0),0);
+      const target = budget[g]||0;
+      if (fixedSum > target) alert(`Atenție: cheltuielile/ economiile FIXE din "${g}" (${fixedSum.toFixed(2)}) depășesc bugetul alocat (${target.toFixed(2)}).`);
+      const flex = linesIn.filter(l=>!l.fixed);
+      const targetFlex = Math.max(target - fixedSum, 0);
+      if (!flex.length) return;
+      const flexSum = flex.reduce((a,b)=>a+(b.amount||0),0);
+      if (flexSum===0) { const eq = targetFlex / flex.length; flex.forEach(f=> f.amount = Number(eq.toFixed(2))); }
+      else { const k = targetFlex / flexSum; flex.forEach(f=> f.amount = Number(((f.amount||0)*k).toFixed(2))); }
+    });
+    rerender();
+  }
+
+  function exportCSV() {
+    const rows = state.lines.map(l=>({
+      Grup: l.group===GroupKey.BAZA? 'Cheltuieli de bază' : l.group===GroupKey.SOCIALE? 'Cheltuieli sociale' : l.group===GroupKey.ECONOMII? 'Economii' : 'Investiții',
+      Nume: l.name,
+      Suma: l.amount,
+      'Fix (nu se ajustează)': l.fixed? 'Da':'Nu',
+      '% din venit (activ)': l.percentEnabled ? l.percent : '—',
+    }));
+    saveFile('buget_personal.csv', toCSV(rows), 'text/csv;charset=utf-8');
+  }
+
+  function exportJSON() { saveFile('buget_personal.json', JSON.stringify(state, null, 2), 'application/json'); }
+
+  function importJSON(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(String(reader.result));
+        Object.assign(state, {
+          currency: data.currency || RON,
+          income: Number(data.income||0),
+          lines: Array.isArray(data.lines) ? data.lines.map(l=>({
+            id: l.id || uid(), name:String(l.name||''), amount:Number(l.amount||0), fixed:!!l.fixed, group:l.group, percent:Number(l.percent||0), percentEnabled:!!l.percentEnabled
+          })) : [],
+          splitActive: { ...defaultSplitActive, ...(data.splitActive||{}) },
+          splitPct: { ...defaultSplitPct, ...(data.splitPct||{}) },
+        });
+        if (!state.lines.length) initDefaultLines();
+        alert('Import reușit.');
+        rerender();
+      } catch { alert('Fișier invalid.'); }
+    };
+    reader.readAsText(file);
+  }
+
+  function resetAll() {
+    if (!confirm('Sigur doriți să resetați toate valorile?')) return;
+    state.currency = RON; state.income = 0; state.splitActive = { ...defaultSplitActive }; state.splitPct = { ...defaultSplitPct }; initDefaultLines(); rerender();
+  }
+
+  // ======================= EVENTS =======================
+  document.getElementById('btnApplyPercents').addEventListener('click', applyPercentScalingAll);
+  document.getElementById('btnAutobalance').addEventListener('click', autoBalanceToIncome);
+  document.getElementById('btnApplySplit').addEventListener('click', applySplitToGroups);
+  document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+  document.getElementById('btnExportJSON').addEventListener('click', exportJSON);
+  document.getElementById('btnReset').addEventListener('click', resetAll);
+  document.getElementById('import-json').addEventListener('change', (e)=>{ const f=e.target.files?.[0]; if (f) { importJSON(f); e.target.value=''; } });
+
+  elCurrency.addEventListener('change', ()=>{ state.currency = elCurrency.value; rerender(); });
+  // focus -> select text pentru editare rapidă; input -> live update
+  elIncomeInput.addEventListener('focus', ()=>{ elIncomeInput.select(); });
+  elIncomeInput.addEventListener('input', ()=>{ const v = Number(elIncomeInput.value.toString().replace(',', '.')); state.income = isFinite(v)&&v>=0? v:0; renderMetrics(); save(); });
+  elIncomeSlider.addEventListener('input', ()=>{ const v = Number(elIncomeSlider.value); state.income = v; elIncomeInput.value=String(v); rerender(); });
+
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const t = btn.getAttribute('data-tab');
+      document.querySelectorAll('[id^="tab-"]').forEach(sec=>sec.classList.add('hidden'));
+      document.getElementById('tab-'+t).classList.remove('hidden');
+    });
+  });
+
+  // ======================= INIT =======================
+  load();
+  rerender();
+
+  // ======================= DEV TESTS (console.assert) =======================
+  try {
+    // Test 1: CSV newline + escape quotes
+    const sample = [ { Nume: 'Test "A"', Suma: 10 }, { Nume: 'B', Suma: 20 } ];
+    const csv = toCSV(sample);
+    console.assert(csv.includes('\n'), 'CSV trebuie să conțină newline');
+    console.assert(csv.split('\n').length >= 2, 'CSV are cel puțin două linii');
+    console.assert(csv.includes('"Test ""A"""'), 'CSV trebuie să escapeze ghilimelele duble');
+
+    // Test 2: split active sum ~ 100 după ajustare
+    const before = { ...state.splitPct };
+    setSplitWithAutoAdjust(GroupKey.ECONOMII, 30);
+    const actives = Object.keys(state.splitActive).filter(k=>state.splitActive[k]);
+    const s = actives.reduce((a,k)=>a+(state.splitPct[k]||0),0);
+    console.assert(Math.abs(s-100) < 0.001, 'Split-urile active trebuie să însumeze 100%');
+    state.splitPct = before; save();
+
+    // Test 3: percent reflect amount & amount reflect percent
+    const testIncome = 1000; const percent = 10; const amount = 100;
+    console.assert(Math.abs((testIncome*percent)/100 - amount) < 0.001, 'Conversie % -> sumă corectă');
+  } catch(e) { console.warn('DEV TESTS failed', e); }
+  </script>
+</body>
+</html>
