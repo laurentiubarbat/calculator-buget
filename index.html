@@ -392,7 +392,10 @@
         <div class="text-sm" style="font-weight:600;">Împărțire buget pe grupe (suma activelor = 100%)</div>
       </div>
       <div class="split-grid" id="splitGrid"></div>
-      <div class="text-xs muted" style="margin-top:6px;">Total activ: <span id="splitTotal">0</span>%</div>
+      <div class="text-xs muted" style="margin-top:6px;">
+        Total activ: <span id="splitTotal">0</span>%
+      </div>
+      <div id="splitMismatch" class="text-xs muted" style="margin-top:4px;"></div>
       <div style="margin-top:10px;">
         <button id="btnApplySplit" class="btn btn-primary">Aplică împărțirea pe grupe</button>
       </div>
@@ -747,15 +750,47 @@
       var headRow = document.createElement('div');
       headRow.className = 'row-between';
 
-      var left = document.createElement('div');
+            var left = document.createElement('div');
       var h = document.createElement('h3');
       h.className = 'group-title';
       h.textContent = titles[0];
+
       var p = document.createElement('p');
       p.className = 'group-sub';
+
       var active = state.splitActive[groupKey];
       var pctAlloc = state.splitPct[groupKey] || 0;
-      p.textContent = titles[1] + (active ? ' • Alocat: ' + pctAlloc.toFixed(1) + '%' : ' • Alocat: —');
+
+      // cât folosește grupa efectiv din venit
+      var t = totalsByGroup();
+      var groupAmount = 0;
+      if (groupKey === GroupKey.BAZA) groupAmount = t.baza;
+      else if (groupKey === GroupKey.SOCIALE) groupAmount = t.sociale;
+      else if (groupKey === GroupKey.ECONOMII) groupAmount = t.economii;
+      else if (groupKey === GroupKey.INVESTITII) groupAmount = t.investitii;
+
+      var usedPct = state.income > 0 ? (groupAmount / state.income * 100) : 0;
+      var remainingPct = active && state.income > 0 ? (pctAlloc - usedPct) : 0;
+
+      if (active && state.income > 0) {
+        // grupă activă în split + avem venit → arătăm alocat / utilizat / rămas
+        p.textContent =
+          titles[1] +
+          ' • Alocat: ' + pctAlloc.toFixed(1) + '%' +
+          ' • Utilizat: ' + usedPct.toFixed(1) + '%' +
+          ' • Rămas: ' + (remainingPct > 0 ? remainingPct.toFixed(1) : '0.0') + '%';
+      } else if (active) {
+        // activă dar încă nu avem venit
+        p.textContent = titles[1] + ' • Alocat: ' + pctAlloc.toFixed(1) + '%';
+      } else if (state.income > 0) {
+        // neactivă în split, dar există cheltuieli
+        p.textContent =
+          titles[1] +
+          ' • Ne-alocat în split • Utilizat: ' + usedPct.toFixed(1) + '%';
+      } else {
+        p.textContent = titles[1] + ' • Alocat: —';
+      }
+
       left.appendChild(h);
       left.appendChild(p);
 
