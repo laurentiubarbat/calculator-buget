@@ -480,6 +480,8 @@
       'Obligațiuni/Titluri de stat',
       'Crypto (speculativ)',
       'Imobiliare',
+      'Aur',
+      'Donații',
       'Alte investiții'
     ];
 
@@ -699,8 +701,27 @@
           renderGroups();
         });
         input.addEventListener('input', function () {
-          var v = Number(input.value.toString().replace(',', '.')) || 0;
-          setSplitWithAutoAdjust(key, v);
+          var raw = input.value.toString().replace(',', '.');
+          var v = Number(raw);
+          if (!isFinite(v) || v < 0) v = 0;
+
+          // salvăm direct în state, fără auto-balansare
+          state.splitPct[key] = v;
+
+          // recalculează totalul doar pentru grupele active
+          var keysAll = [GroupKey.BAZA, GroupKey.SOCIALE, GroupKey.ECONOMII, GroupKey.INVESTITII];
+          var totalActive = 0;
+          keysAll.forEach(function (k) {
+            if (state.splitActive[k]) totalActive += state.splitPct[k] || 0;
+          });
+          elSplitTotal.textContent = totalActive.toFixed(1);
+
+          // doar avertizare dacă depășim 100%, nu ajustăm nimic
+          if (totalActive > 100.0001) {
+            alert('Totalul procentelor active depășește 100%. Ajustează valorile.');
+          }
+
+          save();
         });
 
         wrap.appendChild(top);
